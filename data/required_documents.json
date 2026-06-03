@@ -1,0 +1,50 @@
+[
+  {
+    "source_id": "SRC_PL_ESG_2023",
+    "company_id": "PFEIFER_LANGEN",
+    "company_name": "Pfeifer & Langen",
+    "document_type": "sustainability_report",
+    "document_title": "Pfeifer & Langen Sustainability Report 2023",
+    "publication_year": 2023,
+    "language": "en",
+    "required_file_name": "Pfeifer_Langen_Sustainability_Report_2023.pdf",
+    "source_site": "Pfeifer & Langen official website",
+    "source_page": "Sustainability Report 2023 PDF"
+  },
+  {
+    "source_id": "SRC_SUEDZUCKER_AR_2024",
+    "company_id": "SUEDZUCKER",
+    "company_name": "Südzucker",
+    "document_type": "annual_report",
+    "document_title": "Südzucker Annual Report 2024/25",
+    "publication_year": 2024,
+    "language": "en",
+    "required_file_name": "Suedzucker_Annual_Report_2024_25.pdf",
+    "source_site": "Südzucker Group official website",
+    "source_page": "Annual Report 2024/25 PDF"
+  },
+  {
+    "source_id": "SRC_ABF_AR_2024",
+    "company_id": "ABF_SUGAR",
+    "company_name": "ABF Sugar",
+    "document_type": "annual_report",
+    "document_title": "Associated British Foods Annual Report 2024",
+    "publication_year": 2024,
+    "language": "en",
+    "required_file_name": "ABF_Annual_Report_2024.pdf",
+    "source_site": "Associated British Foods official website",
+    "source_page": "Annual Report 2024 PDF"
+  },
+  {
+    "source_id": "SRC_TER_AR_2024",
+    "company_id": "TEREOS",
+    "company_name": "Tereos",
+    "document_type": "annual_report",
+    "document_title": "Tereos Annual Report 2024/25",
+    "publication_year": 2024,
+    "language": "en",
+    "required_file_name": "Tereos_Annual_Report_2024_25.pdf",
+    "source_site": "Tereos official website",
+    "source_page": "Annual Report 2024/25 PDF"
+  }
+]

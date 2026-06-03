@@ -1,0 +1,7 @@
+step_no,step_name,description,artifact,status
+1,Upload & source registration,Human selects an official/public document and registers metadata.,document_sources.csv,available
+2,Text extraction,PDF text is extracted and relevant sample text is shown.,document_chunks table / source_text,available
+3,Prompt application,Prompt extracts factual company events as JSON records.,raw LLM JSON,available
+4,Validation & normalization,"Allowed values, country names, event types, source_text and numeric fields are checked.",validated event records,available
+5,Human review,"Analyst approves, corrects or rejects extracted event records.",human_verified flag,available
+6,Save to database,Approved records are stored as normal structured rows for SQL and dashboard usage.,llm_extracted_company_events,available

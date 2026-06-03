@@ -1,0 +1,6 @@
+source_id,company_id,company_name,document_type,document_title,publication_year,language,url_or_file,source_owner,human_selected,pipeline_status,notes
+SRC_SUEDZUCKER_AR_2024,SUEDZUCKER,Südzucker,annual_report,Südzucker Annual Report 2024/25,2024,en,Suedzucker_Annual_Report_2024_25.pdf,Südzucker,True,registered,Official Südzucker annual report
+SRC_PL_ESG_2023,PFEIFER_LANGEN,Pfeifer & Langen,sustainability_report,Pfeifer & Langen Sustainability Report 2023,2023,en,Pfeifer_Langen_Sustainability_Report_2023.pdf,Pfeifer & Langen,True,registered,Official Pfeifer & Langen sustainability report
+SRC_SUEDZUCKER_INVESTOR_2024,SUEDZUCKER,Südzucker,investor_presentation,Südzucker Investor Presentation 2024,2024,en,Suedzucker_Investor_Presentation_2024.pdf,Südzucker,True,registered,Official Südzucker investor presentation
+SRC_ABF_AR_2024,ABF_SUGAR,ABF Sugar,annual_report,Associated British Foods Annual Report 2024,2024,en,ABF_Annual_Report_2024.pdf,ABF,True,registered,Official Associated British Foods annual report
+SRC_TER_AR_2024,TEREOS,Tereos,annual_report,Tereos Annual Report 2024/25,2024,en,Tereos_Annual_Report_2024_25.pdf,Tereos,True,registered,Official Tereos annual report

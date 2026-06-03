@@ -1,0 +1,11 @@
+country,iso_alpha,year,sugar_production,beet_production,import_volume,export_volume,consumption,net_export,import_dependency,export_orientation
+Germany,DEU,2024,4200,36700,700,1100,3000,400,0.23,0.26
+France,FRA,2024,3900,33000,600,1300,2600,700,0.23,0.33
+Poland,POL,2024,2300,16000,300,650,1800,350,0.17,0.28
+Netherlands,NLD,2024,900,7200,200,450,600,250,0.33,0.5
+Denmark,DNK,2024,500,4100,100,250,350,150,0.29,0.5
+Sweden,SWE,2024,350,2600,150,80,420,-70,0.36,0.23
+United Kingdom,GBR,2024,1100,8000,500,300,1400,-200,0.36,0.27
+Spain,ESP,2024,450,3000,700,250,950,-450,0.74,0.56
+Italy,ITA,2024,300,2100,900,150,1100,-750,0.82,0.5
+Belgium,BEL,2024,650,5200,250,420,520,170,0.48,0.65

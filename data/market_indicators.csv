@@ -1,0 +1,13 @@
+year,month,indicator_name,region,value,unit,source_name,source_url
+2020,1,EU sugar price,EU,100,index,European Commission Sugar Market Observatory,
+2020,1,Energy cost index,EU,95,index,Eurostat Energy Statistics,
+2021,1,EU sugar price,EU,108,index,European Commission Sugar Market Observatory,
+2021,1,Energy cost index,EU,110,index,Eurostat Energy Statistics,
+2022,1,EU sugar price,EU,130,index,European Commission Sugar Market Observatory,
+2022,1,Energy cost index,EU,145,index,Eurostat Energy Statistics,
+2023,1,EU sugar price,EU,145,index,European Commission Sugar Market Observatory,
+2023,1,Energy cost index,EU,128,index,Eurostat Energy Statistics,
+2024,1,EU sugar price,EU,115,index,European Commission Sugar Market Observatory,
+2024,1,Energy cost index,EU,115,index,Eurostat Energy Statistics,
+2025,1,EU sugar price,EU,106,index,European Commission Sugar Market Observatory,
+2025,1,Energy cost index,EU,108,index,Eurostat Energy Statistics,
