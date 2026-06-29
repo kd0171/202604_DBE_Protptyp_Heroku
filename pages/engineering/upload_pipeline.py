@@ -1,0 +1,1185 @@
+from __future__ import annotations
+
+import copy
+import json
+from datetime import datetime
+
+import pandas as pd
+import dash
+from dash import ALL, Input, Output, State, callback, ctx, dcc, html
+import dash_bootstrap_components as dbc
+
+from utils import LLM_EVENT_COLUMNS, compact_table, data_note, load_data
+
+
+dash.register_page(__name__, path="/engineering/upload-pipeline", name="Upload & Pipeline")
+
+DEFAULT_FILE = "Nordzucker_Annual_Report_2025.pdf"
+
+data = load_data()
+events = data["events"].copy()
+if "event_id" in events.columns:
+    events = events[events["event_id"].astype(str).ne("event_id")]
+
+EVENT_FIELDS = [
+    "event_id", "company_name", "event_type", "country", "city", "site_name",
+    "product_category", "target_year", "status", "source_text",
+    "extraction_confidence", "validation_status", "human_verified", "review_comment",
+]
+
+FINAL_TABLE_COLUMNS = [
+    "event_id", "company_name", "event_type", "country", "city", "site_name",
+    "product_category", "target_year", "status", "source_document_title",
+    "extraction_confidence", "validation_status", "human_verified", "review_comment",
+]
+
+PHASE_LABELS = {
+    "source_intake": "Source Intake",
+    "text_preparation": "Text Preparation",
+    "rag_indexing": "RAG Indexing",
+    "retrieval_ready": "Retrieval Ready",
+    "event_extraction": "Event Extraction",
+    "human_validation": "Human Review & Validation",
+    "structured_storage": "Structured Storage",
+}
+
+COMMON_PHASES = ["source_intake", "text_preparation"]
+RAG_PHASES = ["rag_indexing", "retrieval_ready"]
+IE_PHASES = ["event_extraction", "human_validation", "structured_storage"]
+
+LLM_PROMPT_STEPS = {
+    "metadata_extraction",
+    "select_passages",
+    "extract_events_json",
+    "link_evidence",
+}
+
+JOBS = [
+    {
+        "key": "upload_pdf",
+        "phase": "source_intake",
+        "name": "upload-pdf",
+        "short": "Upload official PDF",
+        "purpose": "Accept a competitor PDF as the raw source document for both the RAG and IE branches.",
+        "semantic": False,
+        "prompt": "No LLM prompt is used in this step.",
+        "input": "User-selected PDF file from the upload component.",
+        "output": {
+            "document_id": "doc_demo_2025_001",
+            "file_name": DEFAULT_FILE,
+            "source_type": "annual_report",
+            "status": "uploaded",
+        },
+        "saved": "document_registry / document_id=doc_demo_2025_001",
+        "note": "In a production system this step would store the raw PDF in object storage and create an immutable document identifier. In this frontend PoC, only the filename and mocked metadata are shown.",
+    },
+    {
+        "key": "register_source",
+        "phase": "source_intake",
+        "name": "register-source",
+        "short": "Create source record",
+        "purpose": "Create a stable source record so later chunks, extracted events and evidence snippets can be traced back to the same PDF.",
+        "semantic": False,
+        "prompt": "No LLM prompt is used in this step.",
+        "input": "Uploaded PDF and analyst-selected source category.",
+        "output": {
+            "source_id": "SRC_DEMO_NZ_2025",
+            "document_id": "doc_demo_2025_001",
+            "source_owner": "Nordzucker",
+            "human_selected": True,
+        },
+        "saved": "document_sources table",
+        "note": "This step is important for traceability. Every RAG chunk and IE event should keep the source_id so the dashboard can point back to the document.",
+    },
+    {
+        "key": "metadata_extraction",
+        "phase": "source_intake",
+        "name": "extract-metadata",
+        "short": "Detect company and document metadata",
+        "purpose": "Create document-level metadata before indexing and event extraction.",
+        "semantic": True,
+        "prompt": "Extract document-level metadata: company name, document title, publication year, language, source type and reporting period. Return only valid JSON.",
+        "input": "First pages, filename, detected title area and PDF metadata fields.",
+        "output": {
+            "company_name": "Nordzucker AG",
+            "document_title": "Annual Report 2025",
+            "publication_year": 2025,
+            "language": "en",
+            "document_type": "annual_report",
+        },
+        "saved": "document_metadata table",
+        "note": "This is a semantic step if an LLM is used to interpret title pages or reporting context. The PoC displays the prompt and mocked JSON output.",
+    },
+    {
+        "key": "parse_pdf",
+        "phase": "text_preparation",
+        "name": "parse-pdf",
+        "short": "Parse PDF layout",
+        "purpose": "Prepare the uploaded PDF for downstream text-based processing.",
+        "semantic": False,
+        "prompt": "No LLM prompt is used in this step.",
+        "input": "PDF binary content.",
+        "output": {
+            "pages_processed": 112,
+            "layout_blocks": 418,
+            "page_reference_mode": "page_number + block_id",
+        },
+        "saved": "parsed_pdf_blocks table / document_layout.jsonl",
+        "note": "Implementation still has to be decided. A production version could use a PDF parser such as PyMuPDF, pdfplumber or an OCR pipeline if scanned pages are present.",
+    },
+    {
+        "key": "extract_clean_text",
+        "phase": "text_preparation",
+        "name": "extract-clean-text",
+        "short": "Extract and clean machine-readable text",
+        "purpose": "Create a cleaned text representation that can be reused by both RAG indexing and IE extraction.",
+        "semantic": False,
+        "prompt": "No LLM prompt is required by default. Cleaning can be rule-based; an LLM could optionally be used for difficult section normalization.",
+        "input": "Parsed PDF blocks with page and layout metadata.",
+        "output": {
+            "text_blocks": 376,
+            "cleaned": True,
+            "metadata_fields": ["document_id", "page", "section", "company", "year"],
+        },
+        "saved": "cleaned_text_blocks table / cleaned_document.jsonl",
+        "note": "The key user-facing point is that page and section references must not be lost. Both RAG answers and IE evidence depend on these references.",
+    },
+    {
+        "key": "chunk_document",
+        "phase": "rag_indexing",
+        "name": "chunk-document",
+        "short": "Split document into retrieval chunks",
+        "purpose": "Prepare text for future RAG retrieval by splitting it into stable, source-linked chunks.",
+        "semantic": False,
+        "prompt": "No LLM prompt is required. Rule-based chunking by section, page and token length is sufficient for the PoC concept.",
+        "input": "Cleaned text blocks with source references.",
+        "output": {
+            "chunks_created": 137,
+            "average_chunk_tokens": 430,
+            "metadata_attached": True,
+        },
+        "saved": "rag_chunks collection",
+        "note": "This step belongs to the RAG branch. Its output is not a business event table, but retrieval units for a future chatbot or grounded answer system.",
+    },
+    {
+        "key": "create_embeddings",
+        "phase": "rag_indexing",
+        "name": "create-embeddings",
+        "short": "Create vector representations",
+        "purpose": "Show where embeddings would be generated for the document chunks.",
+        "semantic": False,
+        "prompt": "No LLM generation prompt is used. An embedding model would convert chunks into vectors.",
+        "input": "Cleaned chunks and metadata.",
+        "output": {
+            "vectors_created": 137,
+            "embedding_model": "conceptual placeholder in frontend PoC",
+            "dimension": "not executed",
+        },
+        "saved": "embedding batch artifact",
+        "note": "Implementation is deliberately left as a future backend task. The PoC only shows the expected artifact and where it would belong in the architecture.",
+    },
+    {
+        "key": "store_vector_db",
+        "phase": "retrieval_ready",
+        "name": "store-vector-db",
+        "short": "Store chunks in Vector DB",
+        "purpose": "Show where chunks and vectors would be stored for future retrieval-augmented queries.",
+        "semantic": False,
+        "prompt": "No LLM prompt is used. Vector DB storage is a data infrastructure step.",
+        "input": "Chunk texts, embeddings and document metadata.",
+        "output": {
+            "collection": "competitor_documents",
+            "upserted_vectors": 137,
+            "retrieval_ready": True,
+        },
+        "saved": "VectorDB collection: competitor_documents",
+        "note": "The current app does not implement a VectorDB. This card communicates that the RAG branch would become queryable from this point onward.",
+    },
+    {
+        "key": "prepare_retrieval",
+        "phase": "retrieval_ready",
+        "name": "prepare-retrieval",
+        "short": "Expose retrieval index to the interactive layer",
+        "purpose": "Make the indexed document available for a future RAG-based chatbot or interactive dashboard.",
+        "semantic": False,
+        "prompt": "No answer-generation prompt is executed in the frontend PoC. In production, the query would be embedded, relevant chunks retrieved and passed to an LLM.",
+        "input": "Vector DB collection and retrieval metadata.",
+        "output": {
+            "rag_query_ready": True,
+            "future_frontend": "Interactive Dashboard / Chatbot",
+            "implemented_now": "RAG-like static interaction only",
+        },
+        "saved": "retrieval_config / collection alias",
+        "note": "This is the handover point from Data Engineering to a future RAG backend. The current Data Analysis View remains mock-data based.",
+    },
+    {
+        "key": "select_passages",
+        "phase": "event_extraction",
+        "name": "select-passages",
+        "short": "Select passages relevant for event extraction",
+        "purpose": "Identify text sections likely to contain competitor events. This can be rule-based, retrieval-assisted or prompt-based.",
+        "semantic": True,
+        "prompt": "Select passages that mention investments, capacity changes, plant modernization, closures, decarbonization, partnerships, market entries or product expansion. Keep page and source references.",
+        "input": "Cleaned text blocks, optionally supported by retrieval over chunks.",
+        "output": {
+            "candidate_passages": 28,
+            "pages_covered": 14,
+            "event_keywords_detected": ["investment", "capacity", "energy efficiency"],
+        },
+        "saved": "ie_candidate_passages table",
+        "note": "This is part of the IE branch. It narrows the document before structured extraction so the event prompt does not process irrelevant text.",
+    },
+    {
+        "key": "extract_events_json",
+        "phase": "event_extraction",
+        "name": "extract-events-json",
+        "short": "Extract competitor business events",
+        "purpose": "Use an IE prompt to convert relevant document passages into structured event candidates.",
+        "semantic": True,
+        "prompt": "You are an information extraction assistant for competitive intelligence. Extract only explicit events related to investments, plant closures, capacity changes, decarbonization, partnerships, product expansion and market entries. For each event, return company_name, event_type, country, city, site_name, product_category, target_year, status, evidence_text and confidence. Do not infer facts not supported by the text.",
+        "input": "Selected passages from the cleaned document.",
+        "output": [
+            {
+                "event_id": "evt_001",
+                "company_name": "British Sugar",
+                "event_type": "decarbonization_project",
+                "country": "United Kingdom",
+                "site_name": "Wissington",
+                "target_year": 2026,
+                "confidence": 0.86,
+            },
+            {
+                "event_id": "evt_002",
+                "company_name": "Südzucker",
+                "event_type": "capacity_adjustment",
+                "country": "Germany",
+                "site_name": "Offstein",
+                "target_year": 2025,
+                "confidence": 0.78,
+            },
+        ],
+        "saved": "events_pending_extraction.json",
+        "note": "This is the central LLM-based Information Extraction step. Its result is not a final answer, but draft structured event data that still needs validation.",
+    },
+    {
+        "key": "link_evidence",
+        "phase": "event_extraction",
+        "name": "link-evidence",
+        "short": "Attach source evidence",
+        "purpose": "Ensure that every extracted event can be traced back to a page, section and source text fragment.",
+        "semantic": True,
+        "prompt": "For each extracted event, quote the shortest source passage that directly supports the event. Return event_id, page, section, evidence_text and evidence_strength.",
+        "input": "Event candidates and source passages.",
+        "output": {
+            "events_with_evidence": 5,
+            "missing_evidence": 0,
+            "evidence_fields": ["page", "section", "source_text"],
+        },
+        "saved": "event_evidence table",
+        "note": "This step makes the IE output auditable. The Human Review panel uses this evidence text to let the analyst confirm or correct the extracted data.",
+    },
+    {
+        "key": "schema_precheck",
+        "phase": "human_validation",
+        "name": "schema-precheck",
+        "short": "Automatic schema pre-check",
+        "purpose": "Run an automatic technical pre-check before analyst review. This checks whether JSON can be reviewed, not whether the business content is final.",
+        "semantic": False,
+        "prompt": "No LLM prompt is required. JSON schema validation checks required fields, data types, controlled vocabularies and evidence availability.",
+        "input": "Extracted event JSON records with linked evidence text.",
+        "output": {
+            "records_checked": 5,
+            "machine_check_passed": 4,
+            "requires_human_review": 5,
+        },
+        "saved": "machine_validation_report.json",
+        "note": "This step can be automatic, but it does not complete validation. The pipeline intentionally stops at human-review after this pre-check.",
+    },
+    {
+        "key": "human_review",
+        "phase": "human_validation",
+        "name": "human-review",
+        "short": "Analyst confirms or corrects extracted events",
+        "purpose": "The human reviewer checks extracted event values against the evidence text. Only after this review can the validation be treated as completed.",
+        "semantic": False,
+        "prompt": "No generation prompt is executed here. The analyst approves, edits or rejects each record based on source evidence.",
+        "input": "Event candidates, evidence text, confidence values and automatic schema pre-check results.",
+        "output": {
+            "review_status": "waiting_for_human_approval",
+            "pipeline_gate": "blocked",
+        },
+        "saved": "human_review_decisions table",
+        "note": "This is the only required manual interaction in the PoC. The pipeline shows a yellow exclamation mark here until the Approve button is clicked.",
+    },
+    {
+        "key": "validation_complete",
+        "phase": "human_validation",
+        "name": "validation-complete",
+        "short": "Mark records as validated",
+        "purpose": "Finalize the validation status after the human review decision.",
+        "semantic": False,
+        "prompt": "No LLM prompt is used. The system combines machine pre-checks and human review decisions into a final validation_status.",
+        "input": "Machine validation report and human review decisions.",
+        "output": {
+            "final_valid_records": 5,
+            "validation_status": "human_verified",
+            "ready_for_storage": True,
+        },
+        "saved": "final_validation_status table",
+        "note": "This step is displayed as completed only after human approval. It represents the business handover from AI-generated candidates to verified data.",
+    },
+    {
+        "key": "save_relational_db",
+        "phase": "structured_storage",
+        "name": "save-relational-db",
+        "short": "Publish structured event table",
+        "purpose": "Store verified event data in relational form for dashboards, SQL queries and future Text-to-SQL interfaces.",
+        "semantic": False,
+        "prompt": "No LLM prompt is used. This is the relational storage step for verified structured data.",
+        "input": "Human-validated event records with final validation_status.",
+        "output": {
+            "table": "llm_extracted_company_events",
+            "records_saved": 5,
+            "human_validated": True,
+            "analysis_ready": True,
+        },
+        "saved": "Relational DB table: llm_extracted_company_events",
+        "note": "Clicking this job shows the final structured event table below the pipeline. This table is the handover artifact to the separate Data Analysis View.",
+    },
+]
+
+PIPELINE_ORDER = [job["key"] for job in JOBS]
+HUMAN_GATE_KEY = "human_review"
+HUMAN_GATE_INDEX = PIPELINE_ORDER.index(HUMAN_GATE_KEY)
+
+TUTORIAL_STEPS = [
+    {
+        "title": "1. Overview",
+        "media": "Tutorial media placeholder",
+        "text": "This Engineering View is a one-page workflow. The upper area contains PDF upload, progress status and the RAG / IE pipeline. The lower area changes when you click a pipeline job.",
+        "hint": "You can skip this tutorial at any time and reopen it with the Tutorial button.",
+    },
+    {
+        "title": "2. Upload PDF",
+        "media": "GIF placeholder: PDF upload",
+        "text": "Start by uploading a competitor PDF. The pipeline starts automatically after the file is selected. The current PoC simulates the backend process; it does not execute real PDF parsing or database writes.",
+        "hint": "The upload area is intentionally compact because the pipeline is the main navigation element.",
+    },
+    {
+        "title": "3. Read the pipeline",
+        "media": "GIF placeholder: pipeline progress",
+        "text": "The process starts with common preprocessing and then branches into RAG and IE. Green means completed, a spinning circle means running, and a yellow exclamation mark means human validation is required.",
+        "hint": "The pipeline is always visible at the top so users can keep the overall workflow context.",
+    },
+    {
+        "title": "4. Click pipeline jobs",
+        "media": "GIF placeholder: click a job",
+        "text": "Each pipeline job is clickable. Clicking a job opens the relevant detail panel below the pipeline.",
+        "hint": "This replaces separate Engineering tabs. The pipeline itself acts as the navigation.",
+    },
+    {
+        "title": "5. Inspect prompt-chain steps",
+        "media": "GIF placeholder: prompt detail",
+        "text": "For semantic LLM-related jobs, the detail panel shows the prompt, input, mock output and saved artifact. This is especially relevant for metadata extraction, passage selection, event extraction and evidence linking.",
+        "hint": "For non-LLM steps, the panel shows implementation notes and expected artifacts instead of pretending that a prompt exists.",
+    },
+    {
+        "title": "6. Human validation gate",
+        "media": "GIF placeholder: human-review gate",
+        "text": "The automated IE pipeline stops at human-review. The yellow exclamation mark means the analyst must check the extracted data before the records can be treated as validated.",
+        "hint": "Machine schema checks are not enough; business validation requires human confirmation.",
+    },
+    {
+        "title": "7. Confirm records individually or all at once",
+        "media": "GIF placeholder: confirmation workflow",
+        "text": "You can confirm each extracted event from the dropdown. You can also click Confirm all reviewed events. If some events were not individually confirmed, a confirmation modal appears before the gate is released.",
+        "hint": "This keeps the PoC convenient while still showing that incomplete individual checks are a meaningful review decision.",
+    },
+    {
+        "title": "8. Check final RDB output",
+        "media": "GIF placeholder: final table",
+        "text": "After human validation, the pipeline continues to validation-complete and save-relational-db. Clicking save-relational-db shows the final structured event table that would be handed over to the separate Data Analysis View.",
+        "hint": "The final table is still mock data in this PoC, but it represents the relational output of the IE pipeline.",
+    },
+]
+
+
+
+def initial_state():
+    return {"filename": None, "progress": 0, "started": False, "run_id": None}
+
+
+def human_gate_approved(approval_data):
+    return bool((approval_data or {}).get("approved", False))
+
+
+def job_index(key):
+    for idx, job in enumerate(JOBS):
+        if job["key"] == key:
+            return idx
+    return 0
+
+
+def job_status(index, state, approval_data=None):
+    progress = int((state or {}).get("progress", 0))
+    started = bool((state or {}).get("started", False))
+    approved = human_gate_approved(approval_data)
+
+    # When the user comes back to the page after approval, the page-local
+    # progress store may be reset. The global session approval store should
+    # still show the whole pipeline as completed.
+    if approved and progress == 0 and not started:
+        return "completed"
+
+    if not approved and progress >= HUMAN_GATE_INDEX:
+        if index < HUMAN_GATE_INDEX:
+            return "completed"
+        if index == HUMAN_GATE_INDEX:
+            return "warning"
+        return "pending"
+
+    if index < progress:
+        return "completed"
+    if started and index == progress:
+        return "running"
+    return "pending"
+
+def status_icon(status):
+    if status == "completed":
+        return "✓"
+    if status == "warning":
+        return "!"
+    if status == "running":
+        return ""
+    return ""
+
+
+def json_pretty(value):
+    return json.dumps(value, indent=2, ensure_ascii=False)
+
+
+def jobs_for_phase(phase):
+    return [j for j in JOBS if j["phase"] == phase]
+
+
+def find_event(records, event_id):
+    for rec in records:
+        if rec.get("event_id") == event_id:
+            return rec
+    return records[0] if records else {}
+
+
+def event_records():
+    records = events.where(pd.notnull(events), "").to_dict("records")
+    for rec in records:
+        rec["human_verified"] = str(rec.get("human_verified", "False"))
+    return records
+
+
+def render_metric_cards(state, approval_data=None):
+    progress = int((state or {}).get("progress", 0))
+    started = bool((state or {}).get("started", False))
+    approved = human_gate_approved(approval_data)
+
+    if approved and progress == 0 and not started:
+        completed = len(JOBS)
+        status = "completed"
+    else:
+        completed = min(progress, len(JOBS))
+        if not approved and completed >= HUMAN_GATE_INDEX:
+            status = "waiting for human validation"
+        elif started:
+            status = "running"
+        elif completed == len(JOBS):
+            status = "completed"
+        else:
+            status = "waiting"
+
+    return dbc.Row(
+        [
+            dbc.Col(dbc.Card(dbc.CardBody([html.Div("Status", className="kpi-title"), html.Div(status, className="kpi-value-small"), html.Div("frontend simulation", className="kpi-sub")])), md=3),
+            dbc.Col(dbc.Card(dbc.CardBody([html.Div("Jobs", className="kpi-title"), html.Div(f"{completed}/{len(JOBS)}", className="kpi-value-small"), html.Div("pipeline progress", className="kpi-sub")])), md=3),
+            dbc.Col(dbc.Card(dbc.CardBody([html.Div("RAG", className="kpi-title"), html.Div("conceptual", className="kpi-value-small"), html.Div("VectorDB not implemented", className="kpi-sub")])), md=3),
+            dbc.Col(dbc.Card(dbc.CardBody([html.Div("IE", className="kpi-title"), html.Div("human gate", className="kpi-value-small"), html.Div("manual approval required", className="kpi-sub")])), md=3),
+        ],
+        className="metric-row compact-metric-row",
+    )
+
+def render_phase_card(phase, state, approval_data=None, linear=False):
+    rows = []
+    for job in jobs_for_phase(phase):
+        idx = job_index(job["key"])
+        status = job_status(idx, state, approval_data)
+        rows.append(
+            html.Button(
+                [
+                    html.Span([html.Span(status_icon(status), className=f"job-status {status}"), html.Span(job["name"], className="job-name")], className="job-left"),
+                    html.Span("↻", className="job-retry"),
+                ],
+                id={"type": "pipeline-job", "key": job["key"]},
+                className=f"job-row {status}",
+                n_clicks=0,
+                title=job["short"],
+            )
+        )
+    card_class = "gitlab-stage-card linear-stage-card" if linear else "gitlab-stage-card"
+    return html.Div(
+        [
+            html.Div([html.Div(PHASE_LABELS[phase], className="stage-title"), html.Div(f"{len(jobs_for_phase(phase))} jobs", className="stage-count")], className="stage-header"),
+            html.Div(rows, className="stage-jobs"),
+        ],
+        className=card_class,
+    )
+
+
+def render_pipeline(state, approval_data=None):
+    return html.Div(
+        [
+            html.Div(
+                [
+                    render_phase_card("source_intake", state, approval_data, linear=True),
+                    render_phase_card("text_preparation", state, approval_data, linear=False),
+                ],
+                className="pipeline-left-root common-phase-row",
+            ),
+            html.Div(
+                [
+                    html.Div(className="branching-line-root"),
+                    html.Div(className="branching-dot"),
+                    html.Div(className="branching-line-vertical"),
+                    html.Div(className="branching-line-top"),
+                    html.Div(className="branching-line-bottom"),
+                ],
+                className="branching-connector",
+            ),
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.Div("RAG branch: retrieval-oriented document index", className="branch-lane-label"),
+                            html.Div([render_phase_card(phase, state, approval_data, linear=True) for phase in RAG_PHASES], className="branch-stage-row"),
+                        ],
+                        className="branch-lane rag-lane",
+                    ),
+                    html.Div(
+                        [
+                            html.Div("IE branch: extraction → human validation → storage", className="branch-lane-label"),
+                            html.Div([render_phase_card(phase, state, approval_data, linear=True) for phase in IE_PHASES], className="branch-stage-row ie-stage-row"),
+                        ],
+                        className="branch-lane ie-lane",
+                    ),
+                ],
+                className="branching-right-zone",
+            ),
+        ],
+        className="branching-pipeline",
+    )
+
+
+def semantic_detail(job):
+    if job["semantic"]:
+        left_title = "Prompt used"
+        left_body = job["prompt"]
+    else:
+        left_title = "Implementation note"
+        left_body = f"{job['prompt']}\n\nTo be decided / relevant implementation issue:\n{job['note']}"
+
+    return dbc.Row(
+        [
+            dbc.Col([html.Div(left_title, className="section-label"), html.Pre(left_body, className="prompt-box")], md=5),
+            dbc.Col([html.Div("Input", className="section-label"), html.Div(job["input"], className="soft-box"), html.Div("Saved artifact", className="section-label mt-3"), html.Div(job["saved"], className="soft-box")], md=3),
+            dbc.Col([html.Div("Mock output / result", className="section-label"), html.Pre(json_pretty(job["output"]), className="json-box")], md=4),
+        ]
+    )
+
+
+def human_review_panel(approval_data=None):
+    records = event_records()
+    first = records[0]["event_id"] if records else None
+    approved = human_gate_approved(approval_data)
+    required_ids = [r.get("event_id") for r in records if r.get("event_id")]
+    status_alert = dbc.Alert(
+        "Human validation has already been approved. The pipeline can continue.",
+        color="success",
+        className="py-2",
+    ) if approved else dbc.Alert(
+        "Human validation required. Confirm each extracted event from the dropdown, then click Confirm all reviewed events.",
+        color="warning",
+        className="py-2",
+    )
+    return html.Div(
+        [
+            dcc.Store(id="ep-confirmed-events", data=[]),
+            dcc.Store(id="ep-required-events", data=required_ids),
+            status_alert,
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            dbc.Label("Extracted event"),
+                            dcc.Dropdown(
+                                id="ep-review-event-id",
+                                options=[{"label": f"{r.get('event_id')} | {r.get('company_name')} | {r.get('event_type')}", "value": r.get("event_id")} for r in records],
+                                value=first,
+                                clearable=False,
+                            ),
+                            html.Div(id="ep-review-evidence", className="source-preview-box mt-3"),
+                            dbc.Button("Confirm selected event", id="ep-confirm-selected-event", color="primary", outline=True, size="sm", className="mt-2", n_clicks=0),
+                            html.Div(id="ep-confirm-status", className="status-text mt-2"),
+                        ],
+                        md=5,
+                    ),
+                    dbc.Col(
+                        [
+                            dbc.Row(
+                                [
+                                    dbc.Col([dbc.Label("company_name"), dbc.Input(id="ep-review-company", type="text")], md=6),
+                                    dbc.Col([dbc.Label("event_type"), dbc.Input(id="ep-review-event-type", type="text")], md=6),
+                                ]
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col([dbc.Label("country"), dbc.Input(id="ep-review-country", type="text")], md=4),
+                                    dbc.Col([dbc.Label("city"), dbc.Input(id="ep-review-city", type="text")], md=4),
+                                    dbc.Col([dbc.Label("site_name"), dbc.Input(id="ep-review-site", type="text")], md=4),
+                                ],
+                                className="mt-2",
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col([dbc.Label("product_category"), dbc.Input(id="ep-review-product", type="text")], md=4),
+                                    dbc.Col([dbc.Label("target_year"), dbc.Input(id="ep-review-year", type="text")], md=4),
+                                    dbc.Col([dbc.Label("status"), dbc.Input(id="ep-review-status-field", type="text")], md=4),
+                                ],
+                                className="mt-2",
+                            ),
+                            dbc.Label("review_comment", className="mt-2"),
+                            dbc.Textarea(id="ep-review-comment", rows=2),
+                            html.Div(id="ep-confirmation-progress", className="mt-3"),
+                            dbc.Button("Confirm all reviewed events", id="ep-confirm-all-reviewed", color="success", className="mt-2", n_clicks=0),
+                            html.Div(id="ep-inline-approve-status", className="status-text mt-2"),
+                            dbc.Modal(
+                                [
+                                    dbc.ModalHeader(dbc.ModalTitle("Confirm all events?")),
+                                    dbc.ModalBody(
+                                        [
+                                            html.P("Some extracted events have not been individually confirmed yet."),
+                                            html.Div(id="ep-missing-events-modal-text", className="missing-events-box"),
+                                            html.P("You can still approve the full Human Review gate. This means all event records are treated as reviewed for this session."),
+                                        ]
+                                    ),
+                                    dbc.ModalFooter(
+                                        [
+                                            dbc.Button("Go back and review individually", id="ep-cancel-confirm-all-modal", color="secondary", outline=True, className="me-2", n_clicks=0),
+                                            dbc.Button("Confirm all anyway", id="ep-force-confirm-all", color="success", n_clicks=0),
+                                        ]
+                                    ),
+                                ],
+                                id="ep-confirm-all-modal",
+                                centered=True,
+                                is_open=False,
+                            ),
+                        ],
+                        md=7,
+                    ),
+                ]
+            ),
+        ]
+    )
+
+def final_table_panel(approval_data=None):
+    approved = human_gate_approved(approval_data)
+    df = events.copy()
+    if approved:
+        df["human_verified"] = True
+        df["validation_status"] = "human_verified"
+    alert = dbc.Alert(
+        "Final structured event table after human validation. This is the handover artifact to the separate Data Analysis View.",
+        color="success" if approved else "warning",
+    )
+    if not approved:
+        alert = dbc.Alert("Structured storage is blocked until Human Review & Validation is approved. The table below is a preview only.", color="warning")
+    return html.Div(
+        [
+            alert,
+            data_note("llm_extracted_company_events.csv / structured event output", llm_note=True),
+            compact_table(df, FINAL_TABLE_COLUMNS, llm_columns=LLM_EVENT_COLUMNS, page_size=8),
+        ]
+    )
+
+
+def detail_panel(job_key, state, approval_data=None):
+    selected = next((j for j in JOBS if j["key"] == job_key), JOBS[0])
+    idx = job_index(selected["key"])
+    status = job_status(idx, state or {}, approval_data)
+    if selected["key"] == "human_review":
+        body = human_review_panel(approval_data)
+    elif selected["key"] == "save_relational_db":
+        body = final_table_panel(approval_data)
+    else:
+        body = semantic_detail(selected)
+
+    return dbc.Card(
+        [
+            dbc.CardHeader(
+                html.Div(
+                    [
+                        html.Div([html.Span(PHASE_LABELS[selected["phase"]], className="detail-stage-pill"), html.Span(selected["name"], className="detail-title")]),
+                        html.Span(status, className=f"detail-status {status}"),
+                    ],
+                    className="detail-header-row",
+                )
+            ),
+            dbc.CardBody(
+                [
+                    html.P(selected["purpose"], className="detail-purpose"),
+                    body,
+                ]
+            ),
+        ],
+        className="detail-card",
+    )
+
+
+
+def tutorial_modal():
+    return dbc.Modal(
+        [
+            dbc.ModalHeader(dbc.ModalTitle(id="ep-tutorial-title")),
+            dbc.ModalBody(
+                [
+                    html.Div(id="ep-tutorial-progress", className="tutorial-progress-text"),
+                    html.Div(id="ep-tutorial-media", className="tutorial-media-placeholder"),
+                    html.P(id="ep-tutorial-text", className="tutorial-main-text"),
+                    html.Div(id="ep-tutorial-hint", className="tutorial-hint-box"),
+                ]
+            ),
+            dbc.ModalFooter(
+                [
+                    dbc.Button("Skip tutorial", id="ep-tutorial-skip", color="secondary", outline=True, className="me-auto", n_clicks=0),
+                    dbc.Button("Previous", id="ep-tutorial-prev", color="secondary", outline=True, n_clicks=0),
+                    dbc.Button("Next", id="ep-tutorial-next", color="primary", n_clicks=0),
+                ]
+            ),
+        ],
+        id="ep-tutorial-modal",
+        centered=True,
+        size="lg",
+        backdrop="static",
+        keyboard=False,
+        is_open=True,
+    )
+
+
+def layout():
+    return html.Div(
+        [
+            dcc.Store(id="ep-pipeline-state", data=initial_state()),
+            dcc.Store(id="ep-tutorial-store", storage_type="session", data={"open": True, "step": 0, "completed": False}),
+            dcc.Interval(id="ep-pipeline-timer", interval=850, n_intervals=0, disabled=True),
+            tutorial_modal(),
+
+            dbc.Card(
+                [
+                    dbc.CardBody(
+                        [
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Div("Data Engineering Pipeline", className="compact-page-title"),
+                                            html.Div(
+                                                "PDF upload → common preprocessing → RAG / IE branches → human validation gate",
+                                                className="compact-page-subtitle",
+                                            ),
+                                        ],
+                                        md=3,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dbc.Button("Tutorial", id="ep-open-tutorial", color="info", outline=True, size="sm", n_clicks=0),
+                                        ],
+                                        md=1,
+                                        className="compact-tutorial-col",
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dcc.Upload(
+                                                id="ep-pdf-upload",
+                                                children=html.Div(["Upload PDF"], className="compact-upload-label"),
+                                                className="upload-box compact-upload-box",
+                                                multiple=False,
+                                                accept="application/pdf",
+                                            ),
+                                        ],
+                                        md=2,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dbc.Button("Reset", id="ep-reset-pipeline", color="secondary", outline=True, size="sm", n_clicks=0),
+                                            html.Div(id="ep-upload-status", className="status-text compact-status-text"),
+                                        ],
+                                        md=3,
+                                    ),
+                                    dbc.Col(html.Div(id="ep-metric-cards"), md=3),
+                                ],
+                                className="align-items-center g-2",
+                            ),
+                            html.Hr(className="compact-divider"),
+                            html.Div(id="ep-pipeline-view"),
+                            html.Div(id="ep-human-gate-message"),
+                        ]
+                    )
+                ],
+                className="compact-engineering-top",
+            ),
+
+            html.Div(id="ep-job-detail"),
+        ]
+    )
+
+
+@callback(
+    Output("ep-tutorial-store", "data"),
+    Input("ep-open-tutorial", "n_clicks"),
+    Input("ep-tutorial-skip", "n_clicks"),
+    Input("ep-tutorial-prev", "n_clicks"),
+    Input("ep-tutorial-next", "n_clicks"),
+    State("ep-tutorial-store", "data"),
+    prevent_initial_call=True,
+)
+def update_tutorial_state(open_clicks, skip_clicks, prev_clicks, next_clicks, store):
+    store = store or {"open": True, "step": 0, "completed": False}
+    step = int(store.get("step", 0))
+    trigger = ctx.triggered_id
+
+    if trigger == "ep-open-tutorial":
+        return {"open": True, "step": 0, "completed": False}
+
+    if trigger == "ep-tutorial-skip":
+        return {**store, "open": False, "completed": True}
+
+    if trigger == "ep-tutorial-prev":
+        return {**store, "open": True, "step": max(step - 1, 0)}
+
+    if trigger == "ep-tutorial-next":
+        if step >= len(TUTORIAL_STEPS) - 1:
+            return {**store, "open": False, "completed": True}
+        return {**store, "open": True, "step": min(step + 1, len(TUTORIAL_STEPS) - 1)}
+
+    return store
+
+
+@callback(
+    Output("ep-tutorial-modal", "is_open"),
+    Output("ep-tutorial-title", "children"),
+    Output("ep-tutorial-progress", "children"),
+    Output("ep-tutorial-media", "children"),
+    Output("ep-tutorial-text", "children"),
+    Output("ep-tutorial-hint", "children"),
+    Output("ep-tutorial-prev", "disabled"),
+    Output("ep-tutorial-next", "children"),
+    Input("ep-tutorial-store", "data"),
+)
+def render_tutorial(store):
+    store = store or {"open": True, "step": 0, "completed": False}
+    step = min(max(int(store.get("step", 0)), 0), len(TUTORIAL_STEPS) - 1)
+    item = TUTORIAL_STEPS[step]
+    is_last = step == len(TUTORIAL_STEPS) - 1
+
+    return (
+        bool(store.get("open", True)),
+        item["title"],
+        f"Step {step + 1} of {len(TUTORIAL_STEPS)}",
+        html.Div(
+            [
+                html.Div(item["media"], className="tutorial-media-label"),
+                html.Div("GIF / screenshot can be added later here.", className="tutorial-media-subtitle"),
+            ]
+        ),
+        item["text"],
+        item["hint"],
+        step == 0,
+        "Finish" if is_last else "Next",
+    )
+
+
+
+@callback(
+    Output("ep-pipeline-state", "data"),
+    Output("ep-pipeline-timer", "disabled"),
+    Output("global-human-validation-store", "data", allow_duplicate=True),
+    Input("ep-pdf-upload", "filename"),
+    Input("ep-reset-pipeline", "n_clicks"),
+    Input("ep-pipeline-timer", "n_intervals"),
+    State("ep-pipeline-state", "data"),
+    State("global-human-validation-store", "data"),
+    prevent_initial_call=True,
+)
+def update_pipeline_state(filename, reset_clicks, timer_ticks, state, approval_data):
+    trigger = ctx.triggered_id
+    state = state or initial_state()
+    approved = human_gate_approved(approval_data)
+
+    if trigger == "ep-reset-pipeline":
+        return initial_state(), True, {"approved": False}
+
+    if trigger == "ep-pdf-upload":
+        if not filename:
+            return state, True, dash.no_update
+        selected = filename
+        return {"filename": selected, "progress": 0, "started": True, "run_id": datetime.utcnow().strftime("%Y%m%d%H%M%S")}, False, {"approved": False}
+
+    if trigger == "ep-pipeline-timer":
+        if not state.get("started"):
+            return state, True, dash.no_update
+        next_progress = min(int(state.get("progress", 0)) + 1, len(JOBS))
+
+        # Before human approval, the automated pipeline stops at the human-review gate.
+        if next_progress >= HUMAN_GATE_INDEX and not approved:
+            state = {**state, "progress": HUMAN_GATE_INDEX, "started": False}
+            return state, True, dash.no_update
+
+        state = {**state, "progress": next_progress}
+        if next_progress >= len(JOBS):
+            state["started"] = False
+            return state, True, dash.no_update
+        return state, False, dash.no_update
+
+    return state, True, dash.no_update
+
+@callback(
+    Output("ep-pipeline-view", "children"),
+    Output("ep-upload-status", "children"),
+    Output("ep-metric-cards", "children"),
+    Output("ep-human-gate-message", "children"),
+    Input("ep-pipeline-state", "data"),
+    Input("global-human-validation-store", "data"),
+)
+def update_pipeline_view(state, approval_data):
+    state = state or initial_state()
+    filename = state.get("filename")
+    progress = int(state.get("progress", 0))
+    approved = human_gate_approved(approval_data)
+
+    if approved:
+        approved_event = (approval_data or {}).get("approved_event_id", "reviewed event")
+        status = f"Human validation approved for {approved_event}. Pipeline displayed as completed for this session."
+    elif filename:
+        status = f"Selected document: {filename} | completed jobs: {progress}/{len(JOBS)}"
+    else:
+        status = "Upload a PDF to start the simulated pipeline. No real PDF parsing, embeddings, LLM API calls or DB writes are executed in this frontend PoC."
+
+    if progress >= HUMAN_GATE_INDEX and not approved:
+        gate_message = dbc.Alert(
+            [
+                html.Strong("Human validation required. "),
+                "Click the yellow human-review job, confirm each extracted event, and then click Confirm all reviewed events."
+            ],
+            color="warning",
+            className="mt-3",
+        )
+    elif approved:
+        gate_message = dbc.Alert("Human validation approved. The remaining publication jobs continue with the same simulated pipeline timing.", color="success", className="mt-3")
+    else:
+        gate_message = ""
+
+    return render_pipeline(state, approval_data), status, render_metric_cards(state, approval_data), gate_message
+
+
+@callback(
+    Output("ep-job-detail", "children"),
+    Input({"type": "pipeline-job", "key": ALL}, "n_clicks"),
+    Input("ep-pipeline-state", "data"),
+    Input("global-human-validation-store", "data"),
+)
+def update_job_detail(_clicks, state, approval_data):
+    state = state or initial_state()
+    trigger = ctx.triggered_id
+    if isinstance(trigger, dict) and trigger.get("type") == "pipeline-job":
+        key = trigger.get("key")
+    else:
+        progress = int(state.get("progress", 0))
+        if human_gate_approved(approval_data):
+            key = "save_relational_db"
+        elif progress >= HUMAN_GATE_INDEX:
+            key = "human_review"
+        else:
+            key = JOBS[min(max(progress - 1, 0), len(JOBS) - 1)]["key"]
+    return detail_panel(key, state, approval_data)
+
+
+@callback(
+    Output("ep-review-company", "value"),
+    Output("ep-review-event-type", "value"),
+    Output("ep-review-country", "value"),
+    Output("ep-review-city", "value"),
+    Output("ep-review-site", "value"),
+    Output("ep-review-product", "value"),
+    Output("ep-review-year", "value"),
+    Output("ep-review-status-field", "value"),
+    Output("ep-review-comment", "value"),
+    Output("ep-review-evidence", "children"),
+    Input("ep-review-event-id", "value"),
+    prevent_initial_call=False,
+)
+def populate_inline_review(event_id):
+    records = event_records()
+    rec = find_event(records, event_id)
+    evidence = html.Div(
+        [
+            html.Div("Evidence text", className="section-label"),
+            html.Blockquote(rec.get("source_text", ""), className="source-quote"),
+            html.Div(f"Confidence: {rec.get('extraction_confidence', '')}", className="generated-by"),
+        ]
+    )
+    return (
+        rec.get("company_name", ""),
+        rec.get("event_type", ""),
+        rec.get("country", ""),
+        rec.get("city", ""),
+        rec.get("site_name", ""),
+        rec.get("product_category", ""),
+        str(rec.get("target_year", "")),
+        rec.get("status", ""),
+        rec.get("review_comment", ""),
+        evidence,
+    )
+
+
+@callback(
+    Output("ep-confirmed-events", "data"),
+    Output("ep-confirm-status", "children"),
+    Input("ep-confirm-selected-event", "n_clicks"),
+    State("ep-review-event-id", "value"),
+    State("ep-confirmed-events", "data"),
+    prevent_initial_call=True,
+)
+def confirm_selected_event(n_clicks, event_id, confirmed):
+    confirmed = confirmed or []
+    if not event_id:
+        return confirmed, "No event selected."
+    if event_id not in confirmed:
+        confirmed = confirmed + [event_id]
+    return confirmed, f"Confirmed {event_id}. Continue until all dropdown events are confirmed."
+
+
+@callback(
+    Output("ep-confirmation-progress", "children"),
+    Input("ep-confirmed-events", "data"),
+    State("ep-required-events", "data"),
+)
+def render_confirmation_progress(confirmed, required):
+    confirmed = confirmed or []
+    required = required or []
+    items = []
+    for event_id in required:
+        done = event_id in confirmed
+        items.append(
+            dbc.Badge(
+                f"{event_id} {'✓' if done else '!'}",
+                color="success" if done else "warning",
+                className="me-1 mb-1",
+            )
+        )
+    summary = f"{len(confirmed)}/{len(required)} events confirmed"
+    return html.Div([html.Div(summary, className="section-label"), html.Div(items)])
+
+
+def build_approval_payload(event_id="all_reviewed_events", confirmed=None, force=False, missing=None):
+    return {
+        "approved": True,
+        "approved_event_id": event_id,
+        "approved_at": "session",
+        "confirmed_events": confirmed or [],
+        "force_confirmed": bool(force),
+        "missing_individual_confirmations": missing or [],
+    }
+
+
+def continue_pipeline_after_human_gate(pipeline_state):
+    pipeline_state = pipeline_state or initial_state()
+    return {
+        **pipeline_state,
+        "progress": HUMAN_GATE_INDEX + 1,
+        "started": True,
+        "run_id": pipeline_state.get("run_id") or datetime.utcnow().strftime("%Y%m%d%H%M%S"),
+    }
+
+
+@callback(
+    Output("ep-confirm-all-modal", "is_open"),
+    Output("ep-missing-events-modal-text", "children"),
+    Output("global-human-validation-store", "data", allow_duplicate=True),
+    Output("ep-inline-approve-status", "children"),
+    Output("ep-pipeline-state", "data", allow_duplicate=True),
+    Output("ep-pipeline-timer", "disabled", allow_duplicate=True),
+    Input("ep-confirm-all-reviewed", "n_clicks"),
+    Input("ep-force-confirm-all", "n_clicks"),
+    Input("ep-cancel-confirm-all-modal", "n_clicks"),
+    State("ep-confirmed-events", "data"),
+    State("ep-required-events", "data"),
+    State("ep-pipeline-state", "data"),
+    State("ep-confirm-all-modal", "is_open"),
+    prevent_initial_call=True,
+)
+def confirm_all_reviewed(confirm_clicks, force_clicks, cancel_clicks, confirmed, required, pipeline_state, is_open):
+    trigger = ctx.triggered_id
+    confirmed = confirmed or []
+    required = required or []
+    missing = [event_id for event_id in required if event_id not in confirmed]
+
+    # When the human-review detail panel is first rendered, Dash may initialize
+    # newly inserted modal/button components. That initialization must not open
+    # the confirmation modal. The modal should open only after an actual click.
+    if trigger == "ep-confirm-all-reviewed" and not confirm_clicks:
+        return False, "", dash.no_update, "", dash.no_update, dash.no_update
+    if trigger == "ep-force-confirm-all" and not force_clicks:
+        return False, "", dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    if trigger == "ep-cancel-confirm-all-modal" and not cancel_clicks:
+        return False, "", dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
+    if trigger == "ep-cancel-confirm-all-modal":
+        return False, "", dash.no_update, "Please review and confirm the remaining events individually.", dash.no_update, dash.no_update
+
+    if trigger == "ep-force-confirm-all":
+        payload = build_approval_payload(
+            event_id="all_reviewed_events_force_confirmed",
+            confirmed=required,
+            force=True,
+            missing=missing,
+        )
+        return (
+            False,
+            "",
+            payload,
+            "All events were confirmed as reviewed, including records that were not individually confirmed.",
+            continue_pipeline_after_human_gate(pipeline_state),
+            False,
+        )
+
+    if trigger == "ep-confirm-all-reviewed":
+        if missing:
+            missing_badges = [
+                dbc.Badge(event_id, color="warning", text_color="dark", className="me-1 mb-1")
+                for event_id in missing
+            ]
+            modal_text = html.Div(
+                [
+                    html.Div(f"Missing individual confirmations: {len(missing)}", className="section-label"),
+                    html.Div(missing_badges),
+                ]
+            )
+            return True, modal_text, dash.no_update, "Some records are still missing individual confirmation.", dash.no_update, dash.no_update
+
+        payload = build_approval_payload(event_id="all_reviewed_events", confirmed=confirmed, force=False, missing=[])
+        return (
+            False,
+            "",
+            payload,
+            "All events confirmed. Human validation is completed and the pipeline continues.",
+            continue_pipeline_after_human_gate(pipeline_state),
+            False,
+        )
+
+    return False if is_open is None else is_open, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update

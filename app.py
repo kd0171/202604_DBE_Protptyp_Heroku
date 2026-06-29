@@ -10,13 +10,10 @@ app = Dash(
     suppress_callback_exceptions=True
 )
 app.title = "Nordzucker Competitor Intelligence Data Product"
+server = app.server
 
 engineering_links = [
-    ("Pipeline Overview", "/engineering/pipeline-overview"),
-    ("Source Registration", "/engineering/upload-register"),
-    ("LLM Extraction", "/engineering/llm-extraction"),
-    ("Human Review", "/engineering/human-review"),
-    ("Save to Database", "/engineering/save-database"),
+    ("Upload & Pipeline", "/engineering/upload-pipeline"),
 ]
 
 analysis_links = [
@@ -40,6 +37,7 @@ def make_links(items, pathname):
 
 app.layout = html.Div([
     dcc.Location(id="url"),
+    dcc.Store(id="global-human-validation-store", storage_type="session", data={"approved": False}),
     dbc.Navbar(
         dbc.Container([
             html.A([
@@ -48,7 +46,7 @@ app.layout = html.Div([
             ], href="/", className="brand-link"),
             dbc.Nav([
                 dbc.NavLink("Home", href="/", id="top-home"),
-                dbc.NavLink("Data Engineering View", href="/engineering/pipeline-overview", id="top-engineering"),
+                dbc.NavLink("Data Engineering View", href="/engineering/upload-pipeline", id="top-engineering"),
                 dbc.NavLink("Data Analysis View", href="/analysis/market-overview", id="top-analysis"),
             ], pills=True, className="top-view-tabs")
         ], fluid=True),
@@ -76,7 +74,7 @@ def update_subnav(pathname):
     if pathname.startswith("/analysis"):
         return dbc.Nav(make_links(analysis_links, pathname), pills=True), {}, False, False, True
     if pathname.startswith("/engineering"):
-        return dbc.Nav(make_links(engineering_links, pathname), pills=True), {}, False, True, False
+        return "", {"display": "none"}, False, True, False
     return "", {"display": "none"}, False, False, False
 
 if __name__ == "__main__":

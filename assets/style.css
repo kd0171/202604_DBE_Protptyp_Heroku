@@ -215,3 +215,861 @@ body {
   font-size: 0.85rem;
   margin-top: 0.75rem;
 }
+
+/* GitLab-style Data Engineering pipeline */
+.metric-row { margin-bottom: 1rem; }
+.scope-list { margin-bottom: 0; color: #4b5563; }
+.gitlab-pipeline {
+  overflow-x: auto;
+  padding: 0.25rem 0 0.35rem;
+}
+.branching-pipeline {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) 120px minmax(600px, 2fr);
+  align-items: center;
+  gap: 1rem;
+  min-width: 980px;
+}
+.pipeline-left-root {
+  display: flex;
+  align-items: center;
+}
+.branching-connector {
+  position: relative;
+  min-height: 340px;
+}
+.branching-line-root,
+.branching-line-vertical,
+.branching-line-top,
+.branching-line-bottom {
+  position: absolute;
+  background: #d0d7de;
+}
+.branching-line-root {
+  left: 0;
+  top: 50%;
+  width: 42%;
+  height: 2px;
+}
+.branching-dot {
+  position: absolute;
+  left: 42%;
+  top: calc(50% - 6px);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #57606a;
+}
+.branching-line-vertical {
+  left: calc(42% + 5px);
+  top: 19%;
+  width: 2px;
+  height: 62%;
+}
+.branching-line-top {
+  left: calc(42% + 5px);
+  top: 19%;
+  width: 52%;
+  height: 2px;
+}
+.branching-line-bottom {
+  left: calc(42% + 5px);
+  top: 81%;
+  width: 52%;
+  height: 2px;
+}
+.branching-right-zone {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 1.15rem;
+}
+.branch-lane-label {
+  color: #57606a;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+}
+.branch-stage-row {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding: 0.2rem 0.2rem 0.7rem;
+}
+.ie-stage-row {
+  padding-right: 2rem;
+}
+.gitlab-stage-card {
+  position: relative;
+  min-width: 215px;
+  background: #ffffff;
+  border: 1px solid #d0d7de;
+  border-radius: 10px;
+  padding: 0.9rem;
+  box-shadow: 0 1px 2px rgba(27,31,36,0.04);
+}
+.linear-stage-card:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 43px;
+  right: -2rem;
+  width: 2rem;
+  height: 2px;
+  background: #d0d7de;
+}
+.stage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.55rem;
+}
+.stage-title {
+  color: #24292f;
+  font-weight: 800;
+  font-size: 0.98rem;
+  text-transform: lowercase;
+}
+.stage-count {
+  color: #57606a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: #f6f8fa;
+  border: 1px solid #d8dee4;
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+}
+.stage-jobs { display: flex; flex-direction: column; gap: 0.45rem; }
+.job-row {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0.25rem 0.05rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 8px;
+  text-align: left;
+}
+.job-row:hover { background: #f6f8fa; }
+.job-left { display: inline-flex; align-items: center; min-width: 0; }
+.job-name { margin-left: 0.45rem; color: #57606a; font-weight: 650; white-space: nowrap; }
+.job-row.completed .job-name { color: #24292f; }
+.job-row.running .job-name { color: #0969da; }
+.job-status {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+.job-status.completed {
+  background: #2da44e;
+  color: #ffffff;
+  box-shadow: 0 0 0 3px #d1f7dd;
+}
+.job-status.pending {
+  border: 2px solid #d0d7de;
+  background: #ffffff;
+}
+.job-status.running {
+  border: 3px solid #d0d7de;
+  border-top-color: #0969da;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.job-retry {
+  color: #8c959f;
+  border: 1px solid #d0d7de;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  background: #ffffff;
+}
+.pipeline-hint { color: #57606a; font-size: 0.86rem; margin-top: 0.5rem; }
+@media (max-width: 1199px) {
+  .branching-pipeline {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+  .branching-connector {
+    min-height: 140px;
+  }
+  .branching-line-root {
+    left: 50%;
+    top: 0;
+    width: 2px;
+    height: 26%;
+  }
+  .branching-dot {
+    left: calc(50% - 6px);
+    top: 26%;
+  }
+  .branching-line-vertical {
+    left: 50%;
+    top: 26%;
+    width: 2px;
+    height: 42%;
+  }
+  .branching-line-top {
+    left: 50%;
+    top: 26%;
+    width: 24%;
+    height: 2px;
+    transform: rotate(-24deg);
+    transform-origin: left center;
+  }
+  .branching-line-bottom {
+    left: 50%;
+    top: 68%;
+    width: 24%;
+    height: 2px;
+    transform: rotate(24deg);
+    transform-origin: left center;
+  }
+}
+
+.detail-card { margin-top: 1rem; }
+.detail-header-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.detail-title { font-weight: 800; color: #24292f; margin-left: 0.55rem; }
+.detail-stage-pill {
+  background: #eef6ff;
+  color: #0969da;
+  border: 1px solid #b6e3ff;
+  border-radius: 999px;
+  padding: 0.12rem 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: lowercase;
+}
+.detail-status {
+  border-radius: 999px;
+  padding: 0.18rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  border: 1px solid #d0d7de;
+}
+.detail-status.completed { background: #dafbe1; color: #116329; border-color: #aceebb; }
+.detail-status.running { background: #ddf4ff; color: #0969da; border-color: #b6e3ff; }
+.detail-status.pending { background: #f6f8fa; color: #57606a; }
+.detail-purpose { color: #57606a; margin-bottom: 0.9rem; }
+.soft-box {
+  background: #f6f8fa;
+  color: #24292f;
+  border: 1px solid #d0d7de;
+  border-radius: 10px;
+  padding: 0.8rem;
+  white-space: pre-wrap;
+  font-size: 0.82rem;
+}
+.generated-by {
+  margin-top: 0.55rem;
+  display: inline-block;
+  background: #fff8c5;
+  border: 1px solid #f0d76a;
+  border-radius: 8px;
+  padding: 0.25rem 0.45rem;
+  color: #6e5400;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.detail-card .prompt-box,
+.detail-card .json-box,
+#hr-prompt-collapse .prompt-box,
+#hr-prompt-collapse .json-box {
+  background: #0d1117;
+  color: #e6edf3;
+  border-radius: 10px;
+  padding: 0.9rem;
+  white-space: pre-wrap;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  max-height: 330px;
+  overflow: auto;
+}
+
+
+
+/* Updated RAG / IE phase pipeline layout */
+.common-phase-row {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  overflow-x: visible;
+}
+.common-phase-row .gitlab-stage-card:not(:last-child)::after,
+.branch-stage-row .linear-stage-card:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 43px;
+  right: -2rem;
+  width: 2rem;
+  height: 2px;
+  background: #d0d7de;
+}
+.branching-pipeline {
+  display: grid;
+  grid-template-columns: minmax(470px, 1.2fr) 110px minmax(700px, 1.8fr);
+  align-items: center;
+  gap: 1rem;
+  min-width: 1250px;
+}
+.pipeline-left-root {
+  display: flex;
+  align-items: flex-start;
+}
+.branching-connector {
+  position: relative;
+  min-height: 370px;
+}
+.branching-line-root,
+.branching-line-vertical,
+.branching-line-top,
+.branching-line-bottom {
+  position: absolute;
+  background: #d0d7de;
+}
+.branching-line-root {
+  left: 0;
+  top: 50%;
+  width: 42%;
+  height: 2px;
+}
+.branching-dot {
+  position: absolute;
+  left: 42%;
+  top: calc(50% - 6px);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #57606a;
+}
+.branching-line-vertical {
+  left: calc(42% + 5px);
+  top: 18%;
+  width: 2px;
+  height: 64%;
+}
+.branching-line-top {
+  left: calc(42% + 5px);
+  top: 18%;
+  width: 52%;
+  height: 2px;
+}
+.branching-line-bottom {
+  left: calc(42% + 5px);
+  top: 82%;
+  width: 52%;
+  height: 2px;
+}
+.branching-right-zone {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 1.2rem;
+}
+.branch-lane-label {
+  color: #57606a;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+}
+.branch-stage-row {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  overflow-x: visible;
+  padding: 0.2rem 0.2rem 0.7rem;
+}
+.gitlab-stage-card {
+  position: relative;
+  min-width: 215px;
+  background: #ffffff;
+  border: 1px solid #d0d7de;
+  border-radius: 10px;
+  padding: 0.9rem;
+  box-shadow: 0 1px 2px rgba(27,31,36,0.04);
+}
+.gitlab-pipeline {
+  overflow-x: auto;
+  padding: 0.25rem 0 0.35rem;
+}
+@media (max-width: 1199px) {
+  .branching-pipeline {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+  .common-phase-row,
+  .branch-stage-row {
+    overflow-x: auto;
+  }
+  .branching-connector {
+    min-height: 140px;
+  }
+  .branching-line-root {
+    left: 50%;
+    top: 0;
+    width: 2px;
+    height: 26%;
+  }
+  .branching-dot {
+    left: calc(50% - 6px);
+    top: 26%;
+  }
+  .branching-line-vertical {
+    left: 50%;
+    top: 26%;
+    width: 2px;
+    height: 42%;
+  }
+  .branching-line-top {
+    left: 50%;
+    top: 26%;
+    width: 24%;
+    height: 2px;
+    transform: rotate(-24deg);
+    transform-origin: left center;
+  }
+  .branching-line-bottom {
+    left: 50%;
+    top: 68%;
+    width: 24%;
+    height: 2px;
+    transform: rotate(24deg);
+    transform-origin: left center;
+  }
+}
+
+
+
+/* Final layout fix: keep common preprocessing directly connected to the split. */
+#ep-pipeline-view {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+.branching-pipeline {
+  display: grid;
+  grid-template-columns: max-content 84px max-content;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: max-content;
+  width: max-content;
+}
+.common-phase-row {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  overflow-x: visible;
+}
+.pipeline-left-root {
+  display: flex;
+  align-items: flex-start;
+}
+.branching-connector {
+  position: relative;
+  width: 84px;
+  min-height: 370px;
+}
+.branching-line-root {
+  left: 0;
+  top: 50%;
+  width: 36px;
+  height: 2px;
+}
+.branching-dot {
+  left: 36px;
+  top: calc(50% - 6px);
+}
+.branching-line-vertical {
+  left: 41px;
+  top: 18%;
+  width: 2px;
+  height: 64%;
+}
+.branching-line-top {
+  left: 41px;
+  top: 18%;
+  width: 43px;
+  height: 2px;
+}
+.branching-line-bottom {
+  left: 41px;
+  top: 82%;
+  width: 43px;
+  height: 2px;
+}
+.branch-stage-row {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  overflow-x: visible;
+  padding: 0.2rem 0.2rem 0.7rem;
+}
+.common-phase-row .gitlab-stage-card:not(:last-child)::after,
+.branch-stage-row .linear-stage-card:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 43px;
+  right: -2rem;
+  width: 2rem;
+  height: 2px;
+  background: #d0d7de;
+}
+@media (max-width: 1199px) {
+  .branching-pipeline {
+    grid-template-columns: 1fr;
+    min-width: 0;
+    width: auto;
+  }
+  .common-phase-row,
+  .branch-stage-row {
+    overflow-x: auto;
+  }
+}
+
+
+
+/* Human-validation gate status */
+.job-row.warning .job-name {
+  color: #9a6700;
+}
+.job-status.warning {
+  background: #f7d060;
+  color: #3b2f00;
+  box-shadow: 0 0 0 3px #fff1b8;
+}
+.detail-status.warning {
+  background: #fff8c5;
+  color: #9a6700;
+  border-color: #eac54f;
+}
+
+/* Strong final layout override: keep common preprocessing close to the split. */
+#ep-pipeline-view {
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+}
+#ep-pipeline-view .branching-pipeline {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.6rem !important;
+  width: max-content !important;
+  min-width: max-content !important;
+}
+#ep-pipeline-view .pipeline-left-root {
+  flex: 0 0 auto !important;
+}
+#ep-pipeline-view .branching-connector {
+  flex: 0 0 72px !important;
+  width: 72px !important;
+  min-height: 370px !important;
+}
+#ep-pipeline-view .branching-right-zone {
+  flex: 0 0 auto !important;
+}
+#ep-pipeline-view .branching-line-root {
+  left: 0 !important;
+  top: 50% !important;
+  width: 30px !important;
+  height: 2px !important;
+}
+#ep-pipeline-view .branching-dot {
+  left: 30px !important;
+  top: calc(50% - 6px) !important;
+}
+#ep-pipeline-view .branching-line-vertical {
+  left: 35px !important;
+  top: 18% !important;
+  width: 2px !important;
+  height: 64% !important;
+}
+#ep-pipeline-view .branching-line-top {
+  left: 35px !important;
+  top: 18% !important;
+  width: 37px !important;
+  height: 2px !important;
+}
+#ep-pipeline-view .branching-line-bottom {
+  left: 35px !important;
+  top: 82% !important;
+  width: 37px !important;
+  height: 2px !important;
+}
+
+
+
+/* One-page Engineering View final overrides */
+#ep-pipeline-view {
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+}
+#ep-pipeline-view .branching-pipeline {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.6rem !important;
+  width: max-content !important;
+  min-width: max-content !important;
+}
+#ep-pipeline-view .pipeline-left-root {
+  flex: 0 0 auto !important;
+}
+#ep-pipeline-view .branching-connector {
+  flex: 0 0 72px !important;
+  width: 72px !important;
+  min-height: 370px !important;
+}
+#ep-pipeline-view .branching-right-zone {
+  flex: 0 0 auto !important;
+}
+#ep-pipeline-view .branching-line-root {
+  left: 0 !important;
+  top: 50% !important;
+  width: 30px !important;
+  height: 2px !important;
+}
+#ep-pipeline-view .branching-dot {
+  left: 30px !important;
+  top: calc(50% - 6px) !important;
+}
+#ep-pipeline-view .branching-line-vertical {
+  left: 35px !important;
+  top: 18% !important;
+  width: 2px !important;
+  height: 64% !important;
+}
+#ep-pipeline-view .branching-line-top {
+  left: 35px !important;
+  top: 18% !important;
+  width: 37px !important;
+  height: 2px !important;
+}
+#ep-pipeline-view .branching-line-bottom {
+  left: 35px !important;
+  top: 82% !important;
+  width: 37px !important;
+  height: 2px !important;
+}
+.job-row.warning .job-name {
+  color: #9a6700;
+}
+.job-status.warning {
+  background: #f7d060;
+  color: #3b2f00;
+  box-shadow: 0 0 0 3px #fff1b8;
+}
+.detail-status.warning {
+  background: #fff8c5;
+  color: #9a6700;
+  border-color: #eac54f;
+}
+.detail-card {
+  margin-top: 1rem;
+}
+.source-ref {
+  color: #57606a;
+  font-size: 0.82rem;
+  margin-top: 0.35rem;
+}
+
+
+
+/* Compact top Data Engineering layout */
+.sub-navigation[style*="display: none"] { display: none !important; }
+.compact-engineering-top {
+  margin-top: 0.25rem;
+}
+.compact-page-title {
+  font-size: 1.12rem;
+  font-weight: 800;
+  color: #0b3b5b;
+  line-height: 1.15;
+}
+.compact-page-subtitle {
+  font-size: 0.78rem;
+  color: #57606a;
+  margin-top: 0.15rem;
+}
+.compact-upload-box {
+  padding: 0.65rem !important;
+  min-height: 42px;
+}
+.compact-upload-label {
+  font-weight: 750;
+  font-size: 0.86rem;
+}
+.compact-status-text {
+  margin-top: 0.35rem !important;
+  font-size: 0.76rem !important;
+}
+.compact-divider {
+  margin: 0.65rem 0;
+}
+.compact-metric-row {
+  margin-bottom: 0 !important;
+}
+.compact-metric-row .card {
+  box-shadow: none;
+}
+.compact-metric-row .card-body {
+  padding: 0.45rem 0.55rem;
+}
+.compact-metric-row .kpi-title {
+  font-size: 0.68rem;
+}
+.compact-metric-row .kpi-value,
+.compact-metric-row .kpi-value-small {
+  font-size: 0.86rem;
+  margin-top: 0.1rem;
+}
+.compact-metric-row .kpi-sub {
+  font-size: 0.64rem;
+  margin-top: 0.1rem;
+}
+
+/* Keep pipeline connected and compact */
+#ep-pipeline-view {
+  overflow-x: auto;
+  padding-bottom: 0.4rem;
+}
+#ep-pipeline-view .branching-pipeline {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.45rem !important;
+  width: max-content !important;
+  min-width: max-content !important;
+}
+#ep-pipeline-view .gitlab-stage-card {
+  min-width: 205px;
+  padding: 0.7rem;
+}
+#ep-pipeline-view .stage-title {
+  font-size: 0.86rem;
+}
+#ep-pipeline-view .stage-count {
+  font-size: 0.67rem;
+}
+#ep-pipeline-view .job-name {
+  font-size: 0.78rem;
+}
+#ep-pipeline-view .branching-connector {
+  flex: 0 0 60px !important;
+  width: 60px !important;
+  min-height: 330px !important;
+}
+#ep-pipeline-view .branching-line-root {
+  left: 0 !important;
+  top: 50% !important;
+  width: 24px !important;
+  height: 2px !important;
+}
+#ep-pipeline-view .branching-dot {
+  left: 24px !important;
+  top: calc(50% - 6px) !important;
+}
+#ep-pipeline-view .branching-line-vertical {
+  left: 29px !important;
+  top: 18% !important;
+  width: 2px !important;
+  height: 64% !important;
+}
+#ep-pipeline-view .branching-line-top {
+  left: 29px !important;
+  top: 18% !important;
+  width: 31px !important;
+  height: 2px !important;
+}
+#ep-pipeline-view .branching-line-bottom {
+  left: 29px !important;
+  top: 82% !important;
+  width: 31px !important;
+  height: 2px !important;
+}
+.job-row.warning .job-name {
+  color: #9a6700;
+}
+.job-status.warning {
+  background: #f7d060;
+  color: #3b2f00;
+  box-shadow: 0 0 0 3px #fff1b8;
+}
+.detail-status.warning {
+  background: #fff8c5;
+  color: #9a6700;
+  border-color: #eac54f;
+}
+
+
+
+/* Confirm-all modal details */
+.missing-events-box {
+  background: #fff8c5;
+  border: 1px solid #eac54f;
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+
+
+/* Startup tutorial modal */
+.tutorial-progress-text {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #57606a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+.tutorial-media-placeholder {
+  min-height: 190px;
+  border: 1px dashed #8c959f;
+  border-radius: 14px;
+  background: #f6f8fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
+.tutorial-media-label {
+  font-weight: 850;
+  color: #0b3b5b;
+  font-size: 1.05rem;
+}
+.tutorial-media-subtitle {
+  color: #57606a;
+  font-size: 0.82rem;
+  margin-top: 0.35rem;
+}
+.tutorial-main-text {
+  font-size: 1rem;
+  color: #24292f;
+  margin-bottom: 0.75rem;
+}
+.tutorial-hint-box {
+  background: #eef6ff;
+  border: 1px solid #b6e3ff;
+  border-radius: 10px;
+  padding: 0.75rem;
+  color: #0969da;
+  font-size: 0.9rem;
+}
+
+
+
+/* Tutorial button placement between title and PDF upload */
+.compact-tutorial-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
