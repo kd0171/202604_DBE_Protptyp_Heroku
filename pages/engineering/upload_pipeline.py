@@ -476,6 +476,78 @@ def event_records():
     return records
 
 
+def normalize_review_records(records=None):
+    """Return browser-store friendly review records.
+
+    The app is intended for Render deployment without a database. Therefore
+    human edits are kept in dcc.Store(session) and copied into the global
+    approval payload once the review gate is confirmed.
+    """
+    normalized = copy.deepcopy(records) if records else event_records()
+    for rec in normalized:
+        rec["human_verified"] = str(rec.get("human_verified", "False"))
+        if rec["human_verified"].lower() == "true":
+            rec["human_verified"] = "True"
+        elif rec["human_verified"].lower() == "false":
+            rec["human_verified"] = "False"
+        rec.setdefault("validation_status", "pending_review")
+        rec.setdefault("review_comment", "")
+    return normalized
+
+
+def update_review_record(records, event_id, values, mark_confirmed=False):
+    updated = []
+    for rec in normalize_review_records(records):
+        if rec.get("event_id") == event_id:
+            rec = {**rec, **{k: (v if v is not None else "") for k, v in values.items()}}
+            rec["edited_in_session"] = True
+            rec["last_review_action_at"] = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+            if mark_confirmed:
+                rec["human_verified"] = "True"
+                rec["validation_status"] = "human_verified"
+        updated.append(rec)
+    return updated
+
+
+def mark_records_reviewed(records, required_ids=None):
+    required = set(required_ids or [])
+    reviewed = []
+    for rec in normalize_review_records(records):
+        if not required or rec.get("event_id") in required:
+            rec = {
+                **rec,
+                "human_verified": "True",
+                "validation_status": "human_verified",
+                "edited_in_session": rec.get("edited_in_session", False),
+                "last_review_action_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            }
+        reviewed.append(rec)
+    return reviewed
+
+
+def phase_context(phase, state, approval_data=None):
+    phase_jobs = jobs_for_phase(phase)
+    if not phase_jobs:
+        return None
+    progress = int((state or {}).get("progress", 0))
+    approved = human_gate_approved(approval_data)
+    started = bool((state or {}).get("started", False))
+    if approved and progress == 0 and not started:
+        visible_jobs = phase_jobs
+    else:
+        visible_jobs = [j for j in phase_jobs if job_index(j["key"]) < progress or job_status(job_index(j["key"]), state, approval_data) in {"running", "warning", "completed"}]
+    if not visible_jobs:
+        return html.Div("waiting for upstream phase", className="phase-context muted")
+    current = visible_jobs[-1]
+    return html.Div(
+        [
+            html.Div(current["short"], className="phase-context-title"),
+            html.Div(f"Artifact: {current['saved']}", className="phase-context-artifact"),
+        ],
+        className="phase-context",
+    )
+
+
 def render_metric_cards(state, approval_data=None):
     progress = int((state or {}).get("progress", 0))
     started = bool((state or {}).get("started", False))
@@ -527,6 +599,7 @@ def render_phase_card(phase, state, approval_data=None, linear=False):
         [
             html.Div([html.Div(PHASE_LABELS[phase], className="stage-title"), html.Div(f"{len(jobs_for_phase(phase))} jobs", className="stage-count")], className="stage-header"),
             html.Div(rows, className="stage-jobs"),
+            phase_context(phase, state, approval_data),
         ],
         className=card_class,
     )
@@ -594,7 +667,7 @@ def semantic_detail(job):
 
 
 def human_review_panel(approval_data=None):
-    records = event_records()
+    records = normalize_review_records()
     first = records[0]["event_id"] if records else None
     approved = human_gate_approved(approval_data)
     required_ids = [r.get("event_id") for r in records if r.get("event_id")]
@@ -609,8 +682,6 @@ def human_review_panel(approval_data=None):
     )
     return html.Div(
         [
-            dcc.Store(id="ep-confirmed-events", data=[]),
-            dcc.Store(id="ep-required-events", data=required_ids),
             status_alert,
             dbc.Row(
                 [
@@ -624,7 +695,7 @@ def human_review_panel(approval_data=None):
                                 clearable=False,
                             ),
                             html.Div(id="ep-review-evidence", className="source-preview-box mt-3"),
-                            dbc.Button("Confirm selected event", id="ep-confirm-selected-event", color="primary", outline=True, size="sm", className="mt-2", n_clicks=0),
+                            dbc.Button("Save & confirm selected event", id="ep-confirm-selected-event", color="primary", outline=True, size="sm", className="mt-2", n_clicks=0),
                             html.Div(id="ep-confirm-status", className="status-text mt-2"),
                         ],
                         md=5,
@@ -655,6 +726,7 @@ def human_review_panel(approval_data=None):
                             ),
                             dbc.Label("review_comment", className="mt-2"),
                             dbc.Textarea(id="ep-review-comment", rows=2),
+                            dbc.Button("Save edits only", id="ep-save-selected-event", color="secondary", outline=True, size="sm", className="mt-2" , n_clicks=0),
                             html.Div(id="ep-confirmation-progress", className="mt-3"),
                             dbc.Button("Confirm all reviewed events", id="ep-confirm-all-reviewed", color="success", className="mt-2", n_clicks=0),
                             html.Div(id="ep-inline-approve-status", className="status-text mt-2"),
@@ -689,12 +761,19 @@ def human_review_panel(approval_data=None):
 
 def final_table_panel(approval_data=None):
     approved = human_gate_approved(approval_data)
-    df = events.copy()
-    if approved:
-        df["human_verified"] = True
-        df["validation_status"] = "human_verified"
+    reviewed_records = (approval_data or {}).get("reviewed_records")
+    if approved and reviewed_records:
+        df = pd.DataFrame(normalize_review_records(reviewed_records))
+    else:
+        df = events.copy()
+        if approved:
+            df["human_verified"] = True
+            df["validation_status"] = "human_verified"
     alert = dbc.Alert(
-        "Final structured event table after human validation. This is the handover artifact to the separate Data Analysis View.",
+        [
+            html.Strong("Final structured event table after human validation. "),
+            "For Render deployment no server-side database is required: the approved records are kept in the browser session store and can be exported as CSV.",
+        ],
         color="success" if approved else "warning",
     )
     if not approved:
@@ -702,7 +781,14 @@ def final_table_panel(approval_data=None):
     return html.Div(
         [
             alert,
-            data_note("llm_extracted_company_events.csv / structured event output", llm_note=True),
+            data_note("browser session store → downloadable validated CSV / structured event output", llm_note=True),
+            html.Div(
+                [
+                    dbc.Button("Download validated CSV", id="ep-download-review-csv", color="success", outline=True, size="sm", n_clicks=0, disabled=not approved),
+                    dcc.Download(id="ep-download-reviewed-events"),
+                ],
+                className="mb-2",
+            ),
             compact_table(df, FINAL_TABLE_COLUMNS, llm_columns=LLM_EVENT_COLUMNS, page_size=8),
         ]
     )
@@ -775,6 +861,9 @@ def layout():
     return html.Div(
         [
             dcc.Store(id="ep-pipeline-state", data=initial_state()),
+            dcc.Store(id="ep-review-records-store", storage_type="session", data=normalize_review_records()),
+            dcc.Store(id="ep-confirmed-events", storage_type="session", data=[]),
+            dcc.Store(id="ep-required-events", data=[r.get("event_id") for r in normalize_review_records() if r.get("event_id")]),
             dcc.Store(id="ep-tutorial-store", storage_type="session", data={"open": True, "step": 0, "completed": False}),
             dcc.Interval(id="ep-pipeline-timer", interval=850, n_intervals=0, disabled=True),
             tutorial_modal(),
@@ -948,6 +1037,19 @@ def update_pipeline_state(filename, reset_clicks, timer_ticks, state, approval_d
 
     return state, True, dash.no_update
 
+
+@callback(
+    Output("ep-review-records-store", "data", allow_duplicate=True),
+    Output("ep-confirmed-events", "data", allow_duplicate=True),
+    Input("ep-reset-pipeline", "n_clicks"),
+    prevent_initial_call=True,
+)
+def reset_review_session(reset_clicks):
+    if not reset_clicks:
+        return dash.no_update, dash.no_update
+    return normalize_review_records(), []
+
+
 @callback(
     Output("ep-pipeline-view", "children"),
     Output("ep-upload-status", "children"),
@@ -1021,10 +1123,11 @@ def update_job_detail(_clicks, state, approval_data):
     Output("ep-review-comment", "value"),
     Output("ep-review-evidence", "children"),
     Input("ep-review-event-id", "value"),
+    State("ep-review-records-store", "data"),
     prevent_initial_call=False,
 )
-def populate_inline_review(event_id):
-    records = event_records()
+def populate_inline_review(event_id, review_records):
+    records = normalize_review_records(review_records)
     rec = find_event(records, event_id)
     evidence = html.Div(
         [
@@ -1048,52 +1151,110 @@ def populate_inline_review(event_id):
 
 
 @callback(
+    Output("ep-review-records-store", "data"),
     Output("ep-confirmed-events", "data"),
     Output("ep-confirm-status", "children"),
+    Input("ep-save-selected-event", "n_clicks"),
     Input("ep-confirm-selected-event", "n_clicks"),
     State("ep-review-event-id", "value"),
+    State("ep-review-records-store", "data"),
     State("ep-confirmed-events", "data"),
+    State("ep-review-company", "value"),
+    State("ep-review-event-type", "value"),
+    State("ep-review-country", "value"),
+    State("ep-review-city", "value"),
+    State("ep-review-site", "value"),
+    State("ep-review-product", "value"),
+    State("ep-review-year", "value"),
+    State("ep-review-status-field", "value"),
+    State("ep-review-comment", "value"),
     prevent_initial_call=True,
 )
-def confirm_selected_event(n_clicks, event_id, confirmed):
+def save_or_confirm_selected_event(
+    save_clicks,
+    confirm_clicks,
+    event_id,
+    review_records,
+    confirmed,
+    company_name,
+    event_type,
+    country,
+    city,
+    site_name,
+    product_category,
+    target_year,
+    status,
+    review_comment,
+):
+    trigger = ctx.triggered_id
+    records = normalize_review_records(review_records)
     confirmed = confirmed or []
+
+    if trigger == "ep-save-selected-event" and not save_clicks:
+        return dash.no_update, dash.no_update, dash.no_update
+    if trigger == "ep-confirm-selected-event" and not confirm_clicks:
+        return dash.no_update, dash.no_update, dash.no_update
     if not event_id:
-        return confirmed, "No event selected."
-    if event_id not in confirmed:
-        confirmed = confirmed + [event_id]
-    return confirmed, f"Confirmed {event_id}. Continue until all dropdown events are confirmed."
+        return records, confirmed, "No event selected."
+
+    values = {
+        "company_name": company_name or "",
+        "event_type": event_type or "",
+        "country": country or "",
+        "city": city or "",
+        "site_name": site_name or "",
+        "product_category": product_category or "",
+        "target_year": target_year or "",
+        "status": status or "",
+        "review_comment": review_comment or "",
+    }
+
+    if trigger == "ep-confirm-selected-event":
+        records = update_review_record(records, event_id, values, mark_confirmed=True)
+        if event_id not in confirmed:
+            confirmed = confirmed + [event_id]
+        return records, confirmed, f"Saved and confirmed {event_id}. Continue until all dropdown events are confirmed."
+
+    records = update_review_record(records, event_id, values, mark_confirmed=False)
+    return records, confirmed, f"Saved edits for {event_id}. This record is not confirmed yet."
 
 
 @callback(
     Output("ep-confirmation-progress", "children"),
     Input("ep-confirmed-events", "data"),
+    Input("ep-review-records-store", "data"),
     State("ep-required-events", "data"),
 )
-def render_confirmation_progress(confirmed, required):
+def render_confirmation_progress(confirmed, review_records, required):
     confirmed = confirmed or []
     required = required or []
+    records = normalize_review_records(review_records)
+    saved_ids = {r.get("event_id") for r in records if r.get("edited_in_session")}
     items = []
     for event_id in required:
         done = event_id in confirmed
-        items.append(
-            dbc.Badge(
-                f"{event_id} {'✓' if done else '!'}",
-                color="success" if done else "warning",
-                className="me-1 mb-1",
-            )
-        )
-    summary = f"{len(confirmed)}/{len(required)} events confirmed"
+        saved = event_id in saved_ids
+        if done:
+            label, color = f"{event_id} ✓ confirmed", "success"
+        elif saved:
+            label, color = f"{event_id} saved", "info"
+        else:
+            label, color = f"{event_id} ! pending", "warning"
+        items.append(dbc.Badge(label, color=color, className="me-1 mb-1"))
+    summary = f"{len(confirmed)}/{len(required)} events confirmed | {len(saved_ids)}/{len(required)} have saved session edits"
     return html.Div([html.Div(summary, className="section-label"), html.Div(items)])
 
 
-def build_approval_payload(event_id="all_reviewed_events", confirmed=None, force=False, missing=None):
+def build_approval_payload(event_id="all_reviewed_events", confirmed=None, force=False, missing=None, reviewed_records=None):
     return {
         "approved": True,
         "approved_event_id": event_id,
-        "approved_at": "session",
+        "approved_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
         "confirmed_events": confirmed or [],
         "force_confirmed": bool(force),
         "missing_individual_confirmations": missing or [],
+        "reviewed_records": normalize_review_records(reviewed_records),
+        "storage_strategy": "browser_session_store_no_server_database",
     }
 
 
@@ -1114,48 +1275,56 @@ def continue_pipeline_after_human_gate(pipeline_state):
     Output("ep-inline-approve-status", "children"),
     Output("ep-pipeline-state", "data", allow_duplicate=True),
     Output("ep-pipeline-timer", "disabled", allow_duplicate=True),
+    Output("ep-confirmed-events", "data", allow_duplicate=True),
+    Output("ep-review-records-store", "data", allow_duplicate=True),
     Input("ep-confirm-all-reviewed", "n_clicks"),
     Input("ep-force-confirm-all", "n_clicks"),
     Input("ep-cancel-confirm-all-modal", "n_clicks"),
     State("ep-confirmed-events", "data"),
     State("ep-required-events", "data"),
+    State("ep-review-records-store", "data"),
     State("ep-pipeline-state", "data"),
     State("ep-confirm-all-modal", "is_open"),
     prevent_initial_call=True,
 )
-def confirm_all_reviewed(confirm_clicks, force_clicks, cancel_clicks, confirmed, required, pipeline_state, is_open):
+def confirm_all_reviewed(confirm_clicks, force_clicks, cancel_clicks, confirmed, required, review_records, pipeline_state, is_open):
     trigger = ctx.triggered_id
     confirmed = confirmed or []
     required = required or []
+    records = normalize_review_records(review_records)
     missing = [event_id for event_id in required if event_id not in confirmed]
 
     # When the human-review detail panel is first rendered, Dash may initialize
     # newly inserted modal/button components. That initialization must not open
     # the confirmation modal. The modal should open only after an actual click.
     if trigger == "ep-confirm-all-reviewed" and not confirm_clicks:
-        return False, "", dash.no_update, "", dash.no_update, dash.no_update
+        return False, "", dash.no_update, "", dash.no_update, dash.no_update, dash.no_update, dash.no_update
     if trigger == "ep-force-confirm-all" and not force_clicks:
-        return False, "", dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        return False, "", dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
     if trigger == "ep-cancel-confirm-all-modal" and not cancel_clicks:
-        return False, "", dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        return False, "", dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
     if trigger == "ep-cancel-confirm-all-modal":
-        return False, "", dash.no_update, "Please review and confirm the remaining events individually.", dash.no_update, dash.no_update
+        return False, "", dash.no_update, "Please review and confirm the remaining events individually.", dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
     if trigger == "ep-force-confirm-all":
+        reviewed_records = mark_records_reviewed(records, required)
         payload = build_approval_payload(
             event_id="all_reviewed_events_force_confirmed",
             confirmed=required,
             force=True,
             missing=missing,
+            reviewed_records=reviewed_records,
         )
         return (
             False,
             "",
             payload,
-            "All events were confirmed as reviewed, including records that were not individually confirmed.",
+            "All events were saved and confirmed as reviewed, including records that were not individually confirmed.",
             continue_pipeline_after_human_gate(pipeline_state),
             False,
+            required,
+            reviewed_records,
         )
 
     if trigger == "ep-confirm-all-reviewed":
@@ -1170,9 +1339,10 @@ def confirm_all_reviewed(confirm_clicks, force_clicks, cancel_clicks, confirmed,
                     html.Div(missing_badges),
                 ]
             )
-            return True, modal_text, dash.no_update, "Some records are still missing individual confirmation.", dash.no_update, dash.no_update
+            return True, modal_text, dash.no_update, "Some records are still missing individual confirmation.", dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
-        payload = build_approval_payload(event_id="all_reviewed_events", confirmed=confirmed, force=False, missing=[])
+        reviewed_records = mark_records_reviewed(records, required)
+        payload = build_approval_payload(event_id="all_reviewed_events", confirmed=confirmed, force=False, missing=[], reviewed_records=reviewed_records)
         return (
             False,
             "",
@@ -1180,6 +1350,22 @@ def confirm_all_reviewed(confirm_clicks, force_clicks, cancel_clicks, confirmed,
             "All events confirmed. Human validation is completed and the pipeline continues.",
             continue_pipeline_after_human_gate(pipeline_state),
             False,
+            confirmed,
+            reviewed_records,
         )
 
-    return False if is_open is None else is_open, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    return False if is_open is None else is_open, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
+
+@callback(
+    Output("ep-download-reviewed-events", "data"),
+    Input("ep-download-review-csv", "n_clicks"),
+    State("global-human-validation-store", "data"),
+    prevent_initial_call=True,
+)
+def download_reviewed_events(n_clicks, approval_data):
+    if not n_clicks or not human_gate_approved(approval_data):
+        return dash.no_update
+    records = normalize_review_records((approval_data or {}).get("reviewed_records"))
+    df = pd.DataFrame(records)
+    return dcc.send_data_frame(df.to_csv, "validated_company_events_session.csv", index=False)

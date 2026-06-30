@@ -1073,3 +1073,29 @@ body {
   align-items: center;
   justify-content: center;
 }
+
+/* Phase-specific context shown while the pipeline progresses */
+.phase-context {
+  margin-top: 0.55rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #d8dee4;
+  border-radius: 8px;
+  background: #f6f8fa;
+  font-size: 0.74rem;
+  color: #57606a;
+  line-height: 1.25;
+}
+.phase-context.muted {
+  color: #8c959f;
+  background: #ffffff;
+  border-style: dashed;
+}
+.phase-context-title {
+  font-weight: 800;
+  color: #24292f;
+  margin-bottom: 0.15rem;
+}
+.phase-context-artifact {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
