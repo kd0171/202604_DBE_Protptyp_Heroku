@@ -1,0 +1,7 @@
+company_id,gap,impact
+ABF_SUGAR,ABF PDFs absent from uploaded documents folder,ABF rows are currently web-supplemented; add ABF Annual Report 2025 PDF and ABF ESG data PDF for reproducible local extraction.
+PFEIFER_LANGEN,Full financial statements / EBIT / EBITDA / net debt absent,Finance score should be lower confidence or supplemented via Bundesanzeiger / Unternehmensregister.
+PFEIFER_LANGEN,2026 sustainability report scope excludes Ukraine and Italy,Operations footprint must distinguish group locations vs report-scope sites.
+SUEDZUCKER,Group highly diversified,Use Sugar segment for direct competitive comparison and group metrics for resilience/diversification.
+TEREOS,"Footprint values differ by period/source: 14 countries and 15,600 employees in 2024/25; 12 countries and 14,300 employees in FY2025/26 release",Dashboard should keep period-specific records and avoid mixing values.
+ALL,Many sustainability figures are not perfectly comparable across companies,Radar chart should include confidence/coverage overlay or tooltip evidence count.

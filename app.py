@@ -17,6 +17,7 @@ engineering_links = [
 ]
 
 analysis_links = [
+    ("Competitive Scorecard", "/analysis/competitive-scorecard"),
     ("Market Overview", "/analysis/market-overview"),
     ("Regional Analysis", "/analysis/regional-analysis"),
     ("Event Analysis", "/analysis/event-analysis"),
@@ -47,7 +48,7 @@ app.layout = html.Div([
             dbc.Nav([
                 dbc.NavLink("Home", href="/", id="top-home"),
                 dbc.NavLink("Data Engineering View", href="/engineering/upload-pipeline", id="top-engineering"),
-                dbc.NavLink("Data Analysis View", href="/analysis/market-overview", id="top-analysis"),
+                dbc.NavLink("Data Analysis View", href="/analysis/competitive-scorecard", id="top-analysis"),
             ], pills=True, className="top-view-tabs")
         ], fluid=True),
         color="white",

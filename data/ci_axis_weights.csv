@@ -1,0 +1,8 @@
+axis,display_axis,axis_weight,axis_weight_rationale
+finance,Finance strength,0.14285714285714285,"Revenue scale, profitability, debt pressure and comparable disclosure."
+risk,Risk resilience,0.14285714285714285,"Higher score means stronger resilience / lower concern, not higher risk severity."
+sustainability,Sustainability maturity,0.14285714285714285,"Targets, operational KPIs, supply-chain sustainability and reporting maturity."
+operations,Operational strength,0.14285714285714285,"Footprint scale, geographic diversity, raw-material diversity and efficiency evidence."
+products,Product portfolio,0.14285714285714285,"Breadth, value-added products, co-product valorization and evidence depth."
+regulation,Regulatory readiness,0.14285714285714285,"CSRD/ESRS readiness, climate compliance, policy exposure and disclosure maturity."
+investment,Investment momentum,0.14285714285714285,"Capex, strategy, decarbonization projects and growth-vs-restructuring balance."

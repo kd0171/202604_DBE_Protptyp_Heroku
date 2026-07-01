@@ -1,0 +1,29 @@
+axis,scoring_item,weight,weight_rationale,score_direction,display_axis
+finance,Revenue and market scale,0.25,Higher revenue / segment scale improves resilience and analytical relevance.,"1 = weak / high concern, 5 = strong / low concern",Finance strength
+finance,Profitability / operating result,0.45,Positive EBIT/EBITDA and margin are the strongest signal for current financial strength.,"1 = weak / high concern, 5 = strong / low concern",Finance strength
+finance,Balance sheet / debt pressure,0.15,Lower debt pressure and fewer impairment/loss signals improve the score.,"1 = weak / high concern, 5 = strong / low concern",Finance strength
+finance,Disclosure comparability,0.15,"Public, comparable official financial data increases confidence and score reliability.","1 = weak / high concern, 5 = strong / low concern",Finance strength
+risk,Market-price exposure resilience,0.35,Lower sensitivity to EU sugar price decline and raw-material/energy pressure improves the score.,"1 = weak / high concern, 5 = strong / low concern",Risk resilience
+risk,Geographic / business diversification,0.3,"Diversified regions, raw materials and businesses reduce concentrated downside risk.","1 = weak / high concern, 5 = strong / low concern",Risk resilience
+risk,Current stress signals,0.2,"Loss outlooks, impairments, plant restructuring and explicit deterioration lower the score.","1 = weak / high concern, 5 = strong / low concern",Risk resilience
+risk,Evidence confidence,0.15,Better official evidence and fewer data gaps improve reliability.,"1 = weak / high concern, 5 = strong / low concern",Risk resilience
+sustainability,Validated targets and transition ambition,0.35,"SBTi, net-zero, Scope 1/2/3 and FLAG targets increase the score.","1 = weak / high concern, 5 = strong / low concern",Sustainability maturity
+sustainability,Operational sustainability KPIs,0.3,"Emissions, renewable energy, water, energy efficiency and waste KPIs support the score.","1 = weak / high concern, 5 = strong / low concern",Sustainability maturity
+sustainability,Agricultural / supply-chain sustainability,0.2,"Deforestation-free supply, Scope 3, FLAG and sustainable sourcing improve the score.","1 = weak / high concern, 5 = strong / low concern",Sustainability maturity
+sustainability,Reporting maturity,0.15,Comprehensive sustainability statements and transparent metric coverage increase confidence.,"1 = weak / high concern, 5 = strong / low concern",Sustainability maturity
+operations,Production footprint scale,0.35,"Plant count, country count and workforce indicate operational scale.","1 = weak / high concern, 5 = strong / low concern",Operational strength
+operations,Geographic diversification,0.25,Operating in multiple countries / regions reduces footprint concentration.,"1 = weak / high concern, 5 = strong / low concern",Operational strength
+operations,Raw-material / production diversification,0.2,"Beet, cane, grains, starch, ethanol and co-products improve operational flexibility.","1 = weak / high concern, 5 = strong / low concern",Operational strength
+operations,Efficiency / modernization evidence,0.2,"Energy reduction, efficiency programs and site modernization improve the score.","1 = weak / high concern, 5 = strong / low concern",Operational strength
+products,Portfolio breadth,0.4,Broader product lines beyond commodity sugar improve the score.,"1 = weak / high concern, 5 = strong / low concern",Product portfolio
+products,Value-added / specialty products,0.25,"Specialty ingredients, starches, proteins, branded products and Smart Ingredients improve differentiation.","1 = weak / high concern, 5 = strong / low concern",Product portfolio
+products,Co-product valorization,0.2,"Animal feed, molasses, bagasse electricity, bioethanol and circular products improve the score.","1 = weak / high concern, 5 = strong / low concern",Product portfolio
+products,Evidence depth,0.15,More explicit official product evidence increases reliability.,"1 = weak / high concern, 5 = strong / low concern",Product portfolio
+regulation,CSRD / ESRS readiness,0.3,Earlier and more complete sustainability reporting improves readiness.,"1 = weak / high concern, 5 = strong / low concern",Regulatory readiness
+regulation,Climate and taxonomy compliance maturity,0.25,"EU Taxonomy, SBTi, transition plans and climate compliance improve readiness.","1 = weak / high concern, 5 = strong / low concern",Regulatory readiness
+regulation,Exposure to policy cost / sugar market regulation,0.25,"Lower exposure to CO2 quota cost, import policy shocks and sugar-specific regulation improves the score.","1 = weak / high concern, 5 = strong / low concern",Regulatory readiness
+regulation,Disclosure maturity,0.2,More detailed official reporting improves confidence and comparability.,"1 = weak / high concern, 5 = strong / low concern",Regulatory readiness
+investment,Capex and modernization volume,0.35,Higher current investment and modernization activity improves future readiness.,"1 = weak / high concern, 5 = strong / low concern",Investment momentum
+investment,Strategic growth initiatives,0.25,"Clear growth strategies, portfolio initiatives and product expansion improve the score.","1 = weak / high concern, 5 = strong / low concern",Investment momentum
+investment,Decarbonization investment,0.2,"Energy transition, biomass, biogas and decarbonization projects improve the score.","1 = weak / high concern, 5 = strong / low concern",Investment momentum
+investment,Restructuring vs growth balance,0.2,"Growth-oriented investment scores higher than defensive cuts, impairments or divestments.","1 = weak / high concern, 5 = strong / low concern",Investment momentum

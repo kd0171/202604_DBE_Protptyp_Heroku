@@ -1,0 +1,11 @@
+company_id,source_title,source_url,axes_supported,what_to_extract
+ABF_SUGAR,ABF Annual Report 2025 webpage,https://www.abf.co.uk/investors/annual-report-2025,finance,"Sugar revenue, adjusted operating loss/profit"
+ABF_SUGAR,ABF Sugar homepage,https://www.abfsugar.com/,operations;products,"Plants, countries, employees, products"
+ABF_SUGAR,ABF Sugar SBTi page,https://www.abfsugar.com/sustainability/science-based-targets-initiative/,sustainability,"Scope 1/2, Scope 3, net-zero targets"
+ABF_SUGAR,ABF Sugar Our Businesses,https://www.abfsugar.com/our-businesses,operations,Operating businesses
+ABF_SUGAR,ABF Interim Results 2026 announcement,https://www.abf.co.uk/media/news/2026/interim-results-announcement,risk;finance,2026 sugar outlook and impairment risk
+NORDZUCKER,Nordzucker locations page,https://www.nordzucker.com/en/the-sugar-company/locations,operations,21 production sites in Europe and Australia
+SUEDZUCKER,Südzucker German sugar factories,https://www.suedzuckergroup.com/en/company/locations/sugar-factories-germany,operations,German sugar factory list
+PFEIFER_LANGEN,Pfeifer & Langen locations page,https://www.pfeifer-langen.com/en/company/locations,operations,Company sites across Europe
+TEREOS,Tereos FY2025/26 results release,https://www.tereos.com/app/uploads/2026/05/tereos-group-results-release-fy-2025-26.pdf,finance;operations;risk,FY2025/26 financials and footprint
+EU_MARKET,European Commission Sugar Market Observatory,https://agriculture.ec.europa.eu/data-and-analysis/markets/overviews/market-observatories/sugar_en,risk;regulation;finance,"Current EU sugar dashboard, market situation, balance sheet"

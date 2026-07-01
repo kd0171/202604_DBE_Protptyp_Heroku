@@ -1099,3 +1099,12 @@ body {
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+/* Competitive scorecard view */
+.score-logic-card {
+  position: sticky;
+  top: 1rem;
+}
+.score-kpi-card {
+  min-height: 110px;
+}

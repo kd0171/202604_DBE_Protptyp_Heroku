@@ -15,6 +15,12 @@ LLM_EVENT_COLUMNS = {
     "extraction_confidence"
 }
 
+def _read_optional_csv(filename):
+    path = DATA_DIR / filename
+    if path.exists():
+        return pd.read_csv(path)
+    return pd.DataFrame()
+
 def load_data():
     return {
         "companies": pd.read_csv(DATA_DIR / "companies.csv"),
@@ -26,6 +32,18 @@ def load_data():
         "pipeline_steps": pd.read_csv(DATA_DIR / "pipeline_steps.csv"),
         "interactive_queries": json.loads((DATA_DIR / "interactive_queries.json").read_text(encoding="utf-8")),
         "required_documents": json.loads((DATA_DIR / "required_documents.json").read_text(encoding="utf-8")),
+        # Competitive scorecard data generated from uploaded official documents
+        # and clearly separated official website supplements.
+        "ci_indicators": _read_optional_csv("ci_extracted_indicators_long.csv"),
+        "ci_axis_scores": _read_optional_csv("ci_axis_scores.csv"),
+        "ci_score_details": _read_optional_csv("ci_weighted_score_details.csv"),
+        "ci_scoring_items": _read_optional_csv("ci_scoring_items.csv"),
+        "ci_axis_weights": _read_optional_csv("ci_axis_weights.csv"),
+        "ci_overall_scores": _read_optional_csv("ci_overall_scores.csv"),
+        "ci_axis_coverage": _read_optional_csv("ci_axis_coverage_summary.csv"),
+        "ci_data_gaps": _read_optional_csv("ci_data_gaps_and_warnings.csv"),
+        "ci_document_inventory": _read_optional_csv("ci_document_inventory.csv"),
+        "ci_supplement_sources": _read_optional_csv("ci_official_site_supplement_sources.csv"),
     }
 
 def capacity_size(series):
