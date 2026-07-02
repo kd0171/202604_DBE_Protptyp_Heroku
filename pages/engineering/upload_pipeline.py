@@ -16,8 +16,14 @@ from utils import LLM_EVENT_COLUMNS, compact_table, data_note, load_data
 dash.register_page(__name__, path="/engineering/upload-pipeline", name="Upload & Pipeline")
 
 DEFAULT_FILE = "abf-annual-report-2025.pdf.downloadasset.pdf"
+SUPPORTED_SAMPLE_PREFIXES = ("abf-annual-report-2025", "abf annual report 2025")
 APP_ROOT = Path(__file__).resolve().parents[2]
-SAMPLE_PDF_PATH = APP_ROOT / "documents" / "04_abf-sugar" / DEFAULT_FILE
+SAMPLE_PDF_CANDIDATES = [
+    APP_ROOT / "assets" / "compressed_documents" / "04_abf-sugar" / DEFAULT_FILE,
+    APP_ROOT / "assets" / "comp" / "04_ABF" / DEFAULT_FILE,
+    APP_ROOT / "documents" / "04_abf-sugar" / DEFAULT_FILE,
+]
+SAMPLE_PDF_PATH = next((path for path in SAMPLE_PDF_CANDIDATES if path.exists()), SAMPLE_PDF_CANDIDATES[0])
 ENGINEERING_SAMPLE_EVENTS_PATH = APP_ROOT / "data" / "engineering_sample_events.csv"
 
 data = load_data()
@@ -362,7 +368,7 @@ SAMPLE_DOCUMENT_CONTEXT = {
     "company_name": "ABF Sugar / Associated British Foods plc",
     "document_title": "Associated British Foods Annual Report 2025",
     "reporting_period": "52 weeks ended 13 September 2025",
-    "sample_pdf_path": "documents/04_abf-sugar/abf-annual-report-2025.pdf.downloadasset.pdf",
+    "sample_pdf_path": "/assets/comp/04_ABF/abf-annual-report-2025.pdf.downloadasset.pdf",
     "why_this_pdf": "It contains finance, risk, operations, investment and sustainability signals that directly explain the ABF Sugar 2025 peer benchmark used in the dashboard.",
 }
 
@@ -574,6 +580,32 @@ TUTORIAL_STEPS = [
 
 def initial_state():
     return {"filename": None, "progress": 0, "started": False, "run_id": None}
+
+
+def is_supported_sample_pdf(filename):
+    """Return True when the uploaded file is the supported sample PDF.
+
+    Browser downloads may append suffixes such as ``(1)`` before the
+    extension. The prototype therefore checks the beginning of the filename
+    rather than requiring an exact match.
+    """
+    if not filename:
+        return False
+    name = Path(str(filename)).name.lower().strip()
+    normalized = name.replace("_", " ").replace("-", "-")
+    return any(name.startswith(prefix) or normalized.startswith(prefix) for prefix in SUPPORTED_SAMPLE_PREFIXES)
+
+
+def unsupported_pdf_message(filename):
+    return [
+        html.Strong("Unsupported PDF for this prototype. "),
+        html.Span(
+            "This Data Engineering workflow is configured only for the sample PDF "
+            "'ABF Annual Report 2025'. Please use the Sample PDF button next to Tutorial, "
+            "then upload that file. If your browser added a suffix such as '(1)', it will still be accepted."
+        ),
+        html.Div(f"Selected file: {filename}", className="mt-2 small text-muted") if filename else "",
+    ]
 
 
 def human_gate_approved(approval_data):
@@ -1107,6 +1139,18 @@ def layout():
             dcc.Store(id="ep-tutorial-store", storage_type="session", data={"open": True, "step": 0, "completed": False}),
             dcc.Interval(id="ep-pipeline-timer", interval=850, n_intervals=0, disabled=True),
             tutorial_modal(),
+            dbc.Modal(
+                [
+                    dbc.ModalHeader(dbc.ModalTitle("Only the sample PDF is supported")),
+                    dbc.ModalBody(html.Div(id="ep-unsupported-pdf-message")),
+                    dbc.ModalFooter(
+                        dbc.Button("OK", id="ep-unsupported-pdf-close", color="primary", n_clicks=0)
+                    ),
+                ],
+                id="ep-unsupported-pdf-modal",
+                is_open=False,
+                centered=True,
+            ),
 
             dbc.Card(
                 [
@@ -1177,6 +1221,8 @@ def layout():
 )
 def download_sample_pdf(n_clicks):
     if not n_clicks:
+        return dash.no_update
+    if not SAMPLE_PDF_PATH.exists():
         return dash.no_update
     return dcc.send_file(str(SAMPLE_PDF_PATH), filename=DEFAULT_FILE)
 
@@ -1251,44 +1297,52 @@ def render_tutorial(store):
     Output("ep-pipeline-state", "data"),
     Output("ep-pipeline-timer", "disabled"),
     Output("global-human-validation-store", "data", allow_duplicate=True),
+    Output("ep-unsupported-pdf-modal", "is_open"),
+    Output("ep-unsupported-pdf-message", "children"),
     Input("ep-pdf-upload", "filename"),
     Input("ep-reset-pipeline", "n_clicks"),
     Input("ep-pipeline-timer", "n_intervals"),
+    Input("ep-unsupported-pdf-close", "n_clicks"),
     State("ep-pipeline-state", "data"),
     State("global-human-validation-store", "data"),
     prevent_initial_call=True,
 )
-def update_pipeline_state(filename, reset_clicks, timer_ticks, state, approval_data):
+def update_pipeline_state(filename, reset_clicks, timer_ticks, modal_close_clicks, state, approval_data):
     trigger = ctx.triggered_id
     state = state or initial_state()
     approved = human_gate_approved(approval_data)
 
+    if trigger == "ep-unsupported-pdf-close":
+        return state, True, dash.no_update, False, dash.no_update
+
     if trigger == "ep-reset-pipeline":
-        return initial_state(), True, {"approved": False}
+        return initial_state(), True, {"approved": False}, False, ""
 
     if trigger == "ep-pdf-upload":
         if not filename:
-            return state, True, dash.no_update
+            return state, True, dash.no_update, False, ""
         selected = filename
-        return {"filename": selected, "progress": 0, "started": True, "run_id": datetime.utcnow().strftime("%Y%m%d%H%M%S")}, False, {"approved": False}
+        if not is_supported_sample_pdf(selected):
+            return state, True, dash.no_update, True, unsupported_pdf_message(selected)
+        return {"filename": selected, "progress": 0, "started": True, "run_id": datetime.utcnow().strftime("%Y%m%d%H%M%S")}, False, {"approved": False}, False, ""
 
     if trigger == "ep-pipeline-timer":
         if not state.get("started"):
-            return state, True, dash.no_update
+            return state, True, dash.no_update, False, dash.no_update
         next_progress = min(int(state.get("progress", 0)) + 1, len(JOBS))
 
         # Before human approval, the automated pipeline stops at the human-review gate.
         if next_progress >= HUMAN_GATE_INDEX and not approved:
             state = {**state, "progress": HUMAN_GATE_INDEX, "started": False}
-            return state, True, dash.no_update
+            return state, True, dash.no_update, False, dash.no_update
 
         state = {**state, "progress": next_progress}
         if next_progress >= len(JOBS):
             state["started"] = False
-            return state, True, dash.no_update
-        return state, False, dash.no_update
+            return state, True, dash.no_update, False, dash.no_update
+        return state, False, dash.no_update, False, dash.no_update
 
-    return state, True, dash.no_update
+    return state, True, dash.no_update, False, dash.no_update
 
 
 @callback(

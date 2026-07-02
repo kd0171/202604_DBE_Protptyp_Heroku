@@ -429,7 +429,7 @@ def _overview_content(selected_companies):
         dbc.Alert("Interpretation rule: Nordzucker is the focal company. Südzucker, Pfeifer & Langen, Tereos and ABF Sugar are peer competitors. Higher radar scores mean stronger position or lower concern; the detailed tabs provide the real analysis behind the summary.", color="info", className="mb-3"),
         dbc.Row([
             dbc.Col(_plot_card("Strategic radar summary", _make_radar(selected_companies), PLOT_EXPLANATIONS["radar"], "ci_axis_scores.csv + ci_weighted_score_details.csv"), md=8),
-            dbc.Col(dbc.Card([dbc.CardHeader("Scoring logic"), dbc.CardBody([html.P("The scorecard keeps a transparent weighting model. It is deliberately collapsible so the dashboard can remain presentation-friendly while still showing the scoring basis when questioned."), _weighting_details()])], className="score-logic-card"), md=4),
+            dbc.Col(dbc.Card([dbc.CardHeader("Scoring logic"), dbc.CardBody([html.P("The scorecard keeps a transparent weighting model. It is deliberately collapsible so the dashboard remains compact while still showing the scoring basis when needed."), _weighting_details()])], className="score-logic-card"), md=4),
         ], className="chart-row"),
         dbc.Row([
             dbc.Col(_plot_card("Latest operating-margin benchmark", _make_latest_margin_bar(selected_companies), PLOT_EXPLANATIONS["latest_margin"], "ci_financial_timeseries.csv"), md=6),
