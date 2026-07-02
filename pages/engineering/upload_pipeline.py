@@ -533,10 +533,12 @@ TUTORIAL_STEPS = [
         "hint": "You can skip this tutorial at any time and reopen it with the Tutorial button.",
     },
     {
-        "title": "2. Upload PDF",
-        "media": "GIF placeholder: PDF upload",
-        "text": "Start by uploading the sample ABF Annual Report 2025 PDF. The Sample PDF button next to Tutorial downloads the exact document used by this prototype. The pipeline starts automatically after a PDF is selected.",
-        "hint": "The current PoC simulates backend processing; it does not execute real PDF parsing, live LLM calls, embeddings or database writes.",
+        "title": "2. Download the Sample PDF",
+        "media": "GIF: Sample PDF download",
+        "media_src": "/assets/tutorial/download_sample_pdf.gif",
+        "media_alt": "Tutorial GIF showing the Sample PDF button being clicked to download the ABF Annual Report 2025 sample document.",
+        "text": "Use the Sample PDF button next to Tutorial to download the ABF Annual Report 2025 sample file. After downloading it, upload that same PDF through the Upload PDF box. This prototype intentionally supports only this sample document, so the simulated pipeline, prompt-chain outputs and Human Review records stay aligned with the dashboard data.",
+        "hint": "If your browser appends a suffix such as '(1)' to the downloaded filename, the upload validation still accepts it as long as the filename starts with 'abf-annual-report-2025'.",
     },
     {
         "title": "3. Read the pipeline",
@@ -1281,8 +1283,16 @@ def render_tutorial(store):
         f"Step {step + 1} of {len(TUTORIAL_STEPS)}",
         html.Div(
             [
-                html.Div(item["media"], className="tutorial-media-label"),
-                html.Div("GIF / screenshot can be added later here.", className="tutorial-media-subtitle"),
+                html.Img(
+                    src=item["media_src"],
+                    alt=item.get("media_alt", item["media"]),
+                    className="tutorial-media-image",
+                ) if item.get("media_src") else html.Div(
+                    [
+                        html.Div(item["media"], className="tutorial-media-label"),
+                        html.Div("GIF / screenshot can be added later here.", className="tutorial-media-subtitle"),
+                    ]
+                ),
             ]
         ),
         item["text"],

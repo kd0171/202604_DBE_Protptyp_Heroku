@@ -1190,3 +1190,11 @@ body {
   font-size: 0.82rem;
   margin-top: 0.35rem;
 }
+
+.tutorial-media-image {
+  max-width: 100%;
+  max-height: 420px;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  object-fit: contain;
+}
