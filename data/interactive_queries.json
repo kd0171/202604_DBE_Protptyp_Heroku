@@ -1,125 +1,123 @@
 [
   {
-    "query_id": "Q_EU_COMPETITOR_TRENDS",
-    "example_questions": [
-      "Which competitor investment and operational improvement events were extracted for Europe since 2023?",
-      "How are Südzucker, Pfeifer & Langen, Tereos and ABF Sugar moving across Europe?",
-      "Summarize recent European competitor events by company and country"
-    ],
+    "intent_id": "abf_sugar_2025_margin_collapse",
     "matched_keywords": [
-      "Europe",
-      "European",
-      "competitor",
-      "competitors",
-      "trends",
-      "activities",
-      "other companies",
-      "Südzucker",
-      "Pfeifer",
-      "Tereos",
       "ABF",
-      "since 2023"
-    ],
-    "answer_title": "European competitor activity overview by company",
-    "answer_summary": "Across the extracted European competitor events, the strongest activity cluster is in Germany. Südzucker is associated with three event records: modernization of the Offstein production site in 2024, planned energy and emissions reduction measures at German sugar production facilities by 2030, and an existing bioethanol operation reference through CropEnergies. Pfeifer & Langen is associated with two event records: an energy-efficiency program for Polish sugar production sites with a 2030 target and a Germany-related recyclable packaging target for 2024. Tereos is associated with continued development of starch and alcohol activities in France, linked to the Lille area production site. ABF Sugar is associated with two event records: bioethanol-related activities in the United Kingdom and investment in Spanish sugar operations to improve production capability and operating efficiency at the Guadalete area site in Jerez de la Frontera. The overall pattern is that recent competitor activity is less about simple sugar volume expansion and more about upgrading existing production networks, improving energy performance, developing adjacent products such as bioethanol and starch, and improving packaging or operational efficiency.",
-    "filters": {
-      "exclude_company": "NORDZUCKER",
-      "event_presence": "yes"
-    },
-    "charts": [
-      "event_count_by_country",
-      "event_map",
-      "event_timeline"
-    ],
-    "validation_note": "The displayed summary is grounded in the extracted event records and their source text snippets. Company names, countries, target years and event counts correspond to the filtered event table."
-  },
-  {
-    "query_id": "Q_GERMANY_INVESTMENTS",
-    "example_questions": [
-      "Which German competitor sites show modernization, decarbonization or packaging events?",
-      "What do the extracted records say about Südzucker and Pfeifer & Langen in Germany?",
-      "Show Germany competitor events with company, site and source evidence"
-    ],
-    "matched_keywords": [
-      "Germany",
-      "German",
-      "investment",
-      "investments",
-      "modernization",
-      "Germany events",
-      "Offstein",
-      "Ochsenfurt",
-      "Euskirchen",
-      "packaging"
-    ],
-    "answer_title": "Germany: competitor events by site and company",
-    "answer_summary": "Germany contains three extracted competitor event records. Südzucker is associated with two German events. The first is the modernization of the Offstein production site in 2024, with the source text linking the program to energy efficiency in production processes and to the site's role in the special products business. The second is a planned decarbonization-related event represented by the Ochsenfurt Plant, with a 2030 target for reducing energy use and emissions at German sugar production facilities. Pfeifer & Langen is associated with one German event at the Euskirchen Plant: a packaging improvement target to use fully recyclable packaging in Germany by 2024. Because Germany also has high sugar production and several company sites in the regional data, these events indicate that German competitor activity is concentrated on improving the existing production and packaging base rather than only adding new greenfield capacity.",
-    "filters": {
-      "country": "Germany",
-      "event_presence": "yes"
-    },
-    "charts": [
-      "event_count_by_type",
-      "event_map",
-      "evidence_table"
-    ],
-    "validation_note": "The Germany summary uses records where country equals Germany and event_presence equals yes. The sites Offstein, Ochsenfurt and Euskirchen are linked to source text in the event records."
-  },
-  {
-    "query_id": "Q_DECARBONIZATION",
-    "example_questions": [
-      "Which companies mention decarbonization, emissions reduction or energy-efficiency measures?",
-      "Compare energy-efficiency and decarbonization events by country and target year",
-      "What extracted evidence exists for energy reduction activities?"
-    ],
-    "matched_keywords": [
-      "decarbonization",
-      "energy",
-      "efficiency",
-      "emissions",
-      "energy-efficiency",
-      "energy reduction",
-      "2030",
-      "target year"
-    ],
-    "answer_title": "Energy-efficiency and decarbonization-related events",
-    "answer_summary": "Two extracted event records are directly related to energy efficiency or decarbonization. Pfeifer & Langen has an energy-efficiency measure for Polish sugar production sites. The source text states that the company aims to reduce energy consumption by more than 30 percent by 2030 through process optimization and investment in more efficient technologies. Südzucker has a German decarbonization-related event represented by the Ochsenfurt Plant. The source text states that the sugar segment is preparing measures to reduce energy use and emissions at German production facilities by 2030. Together, these records show that energy performance is treated as a concrete operational improvement topic in the extracted competitor data, with 2030 appearing as the relevant target year in both examples.",
-    "filters": {
-      "event_type": [
-        "energy_efficiency_measure",
-        "decarbonization_investment"
-      ]
-    },
-    "charts": [
-      "energy_event_map",
-      "energy_event_timeline",
-      "evidence_table"
-    ],
-    "validation_note": "The summary uses records with event_type energy_efficiency_measure or decarbonization_investment. The 2030 target references are taken from the source text and structured target_year fields."
-  },
-  {
-    "query_id": "Q_BIOETHANOL",
-    "example_questions": [
-      "Which bioethanol-related competitor activities were extracted?",
-      "Compare Südzucker and ABF Sugar bioethanol references",
-      "What source evidence exists for bioethanol activities?"
-    ],
-    "matched_keywords": [
-      "bioethanol",
-      "CropEnergies",
-      "ethanol",
       "ABF Sugar",
-      "Vivergo"
+      "margin collapse",
+      "Vivergo",
+      "Azucarera",
+      "low European sugar prices",
+      "2025 loss"
     ],
-    "answer_title": "Bioethanol-related activities",
-    "answer_summary": "Two extracted event records are related to bioethanol. Südzucker is associated with an existing bioethanol operation reference through the CropEnergies segment. The source text states that bioethanol production remains part of CropEnergies and continues alongside the group's sugar and special products activities. ABF Sugar is associated with a United Kingdom bioethanol-related record linked to Hull. The source text describes bioethanol activities as part of ABF Sugar's sugar-related business portfolio in 2024. These records show that bioethanol appears as an adjacent activity connected to sugar-industry assets and agricultural raw-material use. The extracted data separates these bioethanol references from beet sugar production events so that they can be analyzed as a distinct product category.",
-    "filters": {
-      "product_category": "bioethanol"
-    },
-    "charts": [
-      "event_map",
-      "event_table"
+    "example_questions": [
+      "Why did ABF Sugar\u2019s margin collapse in 2025, and what should Nordzucker learn from it?"
     ],
-    "validation_note": "The bioethanol answer uses records where product_category equals bioethanol. The matching companies are Südzucker and ABF Sugar, and the explanation is supported by their source text snippets."
+    "answer_title": "ABF Sugar shows how quickly a sugar-price downturn can turn into restructuring pressure",
+    "answer_summary": "ABF Sugar is a useful peer warning signal for Nordzucker because its 2025 deterioration was not just a normal revenue fluctuation. In the 2025 annual report, ABF Sugar revenue fell to \u00a32,054m and adjusted operating profit turned into a \u00a32m loss on the current reporting basis. The business explanation is specific: UK and Spanish profitability declined under persistently low European sugar prices and high beet costs, while Vivergo and Azucarera created impairment and restructuring pressure. For Nordzucker, the business lesson is that margin protection, beet-cost flexibility, capacity utilisation and regulatory exposure around bioethanol can matter more than headline revenue size.",
+    "chart": "abf_margin_trend",
+    "evidence_axes": [
+      "finance",
+      "risk",
+      "investment"
+    ],
+    "companies": [
+      "NORDZUCKER",
+      "ABF_SUGAR"
+    ],
+    "validation_note": "The answer uses ABF annual report 2021\u20132025 Sugar segment data added to the documents folder, plus Nordzucker as the focal company. It interprets ABF as a peer signal, not as the target company."
+  },
+  {
+    "intent_id": "eu_sugar_cycle_nordzucker",
+    "matched_keywords": [
+      "EU sugar price",
+      "market cycle",
+      "sector downturn",
+      "Nordzucker loss",
+      "price pressure",
+      "risk"
+    ],
+    "example_questions": [
+      "Is Nordzucker\u2019s 2025/26 loss mainly company-specific or part of an EU sugar cycle?"
+    ],
+    "answer_title": "Nordzucker\u2019s latest loss should be interpreted together with the EU sugar-price cycle",
+    "answer_summary": "The dashboard should not present Nordzucker\u2019s 2025/26 loss as an isolated company failure. The EU white sugar price trend shows a sector-wide reversal after the high-price phase, and several sugar-focused peers also show margin compression. The meaningful question is therefore relative resilience: did Nordzucker lose margin earlier, more sharply, or with less offset from diversification than peers? This is why the app pairs the EU price trend with the profitability drawdown plot rather than relying on a generic risk score.",
+    "chart": "market_price_trend",
+    "evidence_axes": [
+      "risk",
+      "finance",
+      "regulation"
+    ],
+    "companies": [
+      "NORDZUCKER",
+      "SUEDZUCKER",
+      "TEREOS",
+      "ABF_SUGAR"
+    ],
+    "validation_note": "The answer combines EU market data with sugar-related financial time series. It treats market price pressure as the external driver and company margins as the observable business effect."
+  },
+  {
+    "intent_id": "diversification_vs_sugar_exposure",
+    "matched_keywords": [
+      "diversification",
+      "product portfolio",
+      "co-products",
+      "ethanol",
+      "starch",
+      "feed",
+      "Tereos",
+      "S\u00fcdzucker",
+      "ABF"
+    ],
+    "example_questions": [
+      "Which peer diversification patterns are most relevant for Nordzucker\u2019s strategy?"
+    ],
+    "answer_title": "Relevant diversification is not just \u201cmore products\u201d, but better exposure management around sugar margins",
+    "answer_summary": "The product portfolio heatmap helps distinguish three kinds of peer diversification. Tereos is relevant because it combines sugar with starch, alcohol and sweeteners. S\u00fcdzucker is relevant because the group portfolio includes starch, special products, CropEnergies and fruit, although the sugar segment itself can still be under pressure. ABF Sugar is relevant because it shows co-product and energy exposure, but also warns that bioethanol can become a risk if regulation and prices do not support profitability. For Nordzucker, the strategic issue is not simply to copy the broadest portfolio, but to identify product extensions that reduce commodity sugar exposure without adding fragile regulatory dependence.",
+    "chart": "product_heatmap",
+    "evidence_axes": [
+      "products",
+      "risk",
+      "investment"
+    ],
+    "companies": [
+      "NORDZUCKER",
+      "SUEDZUCKER",
+      "TEREOS",
+      "ABF_SUGAR",
+      "PFEIFER_LANGEN"
+    ],
+    "validation_note": "The answer uses the product matrix and investment/risk evidence. It intentionally separates diversification breadth from diversification quality."
+  },
+  {
+    "intent_id": "sustainability_targets_operational_proof",
+    "matched_keywords": [
+      "sustainability",
+      "Scope 1",
+      "Scope 2",
+      "Scope 3",
+      "SBTi",
+      "emissions",
+      "climate target"
+    ],
+    "example_questions": [
+      "How should Nordzucker read peers\u2019 climate targets versus actual operating emissions?"
+    ],
+    "answer_title": "Climate targets are strategic signals only when connected to operational delivery",
+    "answer_summary": "The sustainability page separates target ambition from operating evidence. Scope 1/2 targets indicate direct plant and energy transformation, while Scope 3 or FLAG targets indicate agricultural and supply-chain exposure. The operational emissions trend is therefore important: it checks whether ambition is visible in reported emissions. ABF Sugar\u2019s 2025 Scope 1+2 disclosure falls versus 2024, while Nordzucker\u2019s Scope 1 time series provides a longer baseline. The business value for Nordzucker is to identify whether peers are only publishing targets or also showing measurable transition in energy-intensive sugar production.",
+    "chart": "sustainability_targets",
+    "evidence_axes": [
+      "sustainability",
+      "operations",
+      "investment"
+    ],
+    "companies": [
+      "NORDZUCKER",
+      "SUEDZUCKER",
+      "TEREOS",
+      "ABF_SUGAR",
+      "PFEIFER_LANGEN"
+    ],
+    "validation_note": "The answer uses sustainability target rows and emissions time series. The app does not treat all ESG disclosures as equally comparable; it distinguishes target scope and operational evidence."
   }
 ]

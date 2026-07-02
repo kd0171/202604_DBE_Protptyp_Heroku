@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import dash
 from dash import html, dcc, Input, Output, State, callback
 import dash_bootstrap_components as dbc
@@ -5,10 +7,10 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 
-from utils import load_data, compact_table, data_note
+from utils import load_data, compact_table, data_note, match_query
 
 
-dash.register_page(__name__, path="/analysis/competitive-scorecard", name="Competitive Scorecard")
+dash.register_page(__name__, path="/analysis/competitive-scorecard", name="Analysis Workspace")
 
 data = load_data()
 axis_scores = data["ci_axis_scores"].copy()
@@ -19,307 +21,706 @@ indicators = data["ci_indicators"].copy()
 overall_scores = data["ci_overall_scores"].copy()
 coverage = data["ci_axis_coverage"].copy()
 gaps = data["ci_data_gaps"].copy()
+queries = data["interactive_queries"]
 
-AXIS_ORDER = [
-    "finance", "risk", "sustainability", "operations", "products", "regulation", "investment"
-]
-DISPLAY_AXIS = dict(zip(axis_scores["axis"], axis_scores["display_axis"])) if not axis_scores.empty else {}
-AXIS_OPTIONS = [
-    {"label": DISPLAY_AXIS.get(axis, axis.title()), "value": axis}
-    for axis in AXIS_ORDER
-]
-COMPANY_OPTIONS = [
-    {"label": r.company_name, "value": r.company_id}
-    for r in overall_scores.sort_values("company_name").itertuples()
-]
-DEFAULT_COMPANIES = [o["value"] for o in COMPANY_OPTIONS]
+financials = data["ci_financial_timeseries"].copy()
+segments = data["ci_segment_financial_timeseries"].copy()
+operations = data["ci_operations_profile"].copy()
+products = data["ci_product_portfolio_matrix"].copy()
+sustainability = data["ci_sustainability_targets"].copy()
+emissions = data["ci_emissions_timeseries"].copy()
+market_prices = data["ci_market_price_timeseries"].copy()
+investments = data["ci_investment_events"].copy()
+regulation = data["ci_regulation_context"].copy()
+plot_catalog = data["ci_analysis_plot_catalog"].copy()
 
+AXIS_ORDER = ["finance", "risk", "sustainability", "operations", "products", "regulation", "investment"]
+AXIS_LABELS = {
+    "finance": "Finance",
+    "risk": "Risk & market pressure",
+    "sustainability": "Sustainability",
+    "operations": "Operations",
+    "products": "Products",
+    "regulation": "Regulation",
+    "investment": "Investment",
+}
+TAB_LABELS = {
+    "overview": "Overview",
+    "finance": "Finance",
+    "risk": "Risk",
+    "sustainability": "Sustainability",
+    "operations": "Operations",
+    "products": "Products",
+    "regulation": "Regulation",
+    "investment": "Investment",
+}
+DASHBOARD_TABS = [{"label": TAB_LABELS["overview"], "value": "overview"}] + [
+    {"label": TAB_LABELS[a], "value": a} for a in AXIS_ORDER
+]
+
+if not overall_scores.empty:
+    COMPANY_OPTIONS = [
+        {"label": ("Nordzucker AG – focal company" if r.company_id == "NORDZUCKER" else f"{r.company_name} – peer"), "value": r.company_id}
+        for r in overall_scores.sort_values(["company_id"]).itertuples()
+    ]
+else:
+    COMPANY_OPTIONS = []
+DEFAULT_COMPANIES = [o["value"] for o in COMPANY_OPTIONS] or ["NORDZUCKER", "SUEDZUCKER", "PFEIFER_LANGEN", "TEREOS", "ABF_SUGAR"]
+DEFAULT_QUESTION = queries[0]["example_questions"][0] if queries else "How has Nordzucker’s financial performance changed compared with peer competitors?"
+
+YEAR_ORDER = {
+    "2020/21": 1,
+    "2021/22": 2,
+    "2022/23": 3,
+    "2023/24": 4,
+    "2024/25": 5,
+    "2025/26": 6,
+    "2026 H1": 6.5,
+    # Raw ABF annual-report labels are retained only as a fallback.
+    # In the CSVs they are normalized to sugar-campaign-style labels:
+    # ABF Annual Report 2025 -> 2024/25, etc.
+    "2021": 1,
+    "2022": 2,
+    "2023": 3,
+    "2024": 4,
+    "2025": 5,
+}
+
+PAGE_EXPLANATIONS = {
+    "overview": "This page is the management entry point for Nordzucker. It does not try to make the radar chart the final answer. Instead, it combines the radar with current profitability, ranking, data gaps and source coverage so that the viewer can see both the headline position and the reliability of the underlying evidence. The key business question is where Nordzucker must act first: margin protection, market-risk resilience, product diversification, operational flexibility, regulatory readiness or transition investment.",
+    "finance": "The finance page focuses on margin quality and sugar-segment comparability. In a sugar-price cycle, revenue can rise simply because market prices rise; that does not mean the business has become structurally stronger. The meaningful finance view is therefore whether the company can protect operating margin when prices fall, beet costs remain high, and fixed production assets are under-utilised. ABF report years are normalised to the same fiscal-year style as the other companies in the trend charts, while the original ABF Annual Report year remains available in the hover data and data tables.",
+    "risk": "The risk page connects external sugar-market pressure to realised financial impact. It is not enough to list risks qualitatively; the dashboard should show whether market-price declines actually translated into margin drawdowns, losses, restructuring or impairments. This makes risk visible as business consequence rather than as generic narrative.",
+    "sustainability": "The sustainability page separates target ambition from operational proof. A company may have strong SBTi or net-zero targets, but Nordzucker needs to know whether those targets cover direct plant emissions, agricultural supply-chain emissions or long-term net zero only. The operational emissions plot checks whether reported performance is moving in the same direction as the stated ambition.",
+    "operations": "The operations page analyses scale, footprint and production structure. A broad footprint can reduce country concentration, but it can also create complexity and fixed-cost exposure. For Nordzucker, the business value is to understand whether peers gain resilience from geographic diversity, raw-material diversity or larger production systems.",
+    "products": "The products page analyses exposure management. Product breadth matters only when it reduces dependence on commodity sugar margins or creates useful co-product value. Ethanol, feed, starch, sweeteners and energy can be strategic buffers, but they can also introduce their own price and regulatory risks.",
+    "regulation": "The regulation page distinguishes disclosure readiness from regulatory exposure. Public peers often have stronger CSRD/ESRS-style disclosure, but disclosure quality does not automatically mean lower risk. Nordzucker should read regulation together with market policy, import pressure, bioethanol rules and sustainability reporting obligations.",
+    "investment": "The investment page interprets capex and events through strategic intent. Capex can mean growth, efficiency, decarbonisation or forced restructuring. The same investment number has different business meaning depending on whether it is funded from strength or required because margins, assets or regulation have become problematic.",
+}
+
+PLOT_EXPLANATIONS = {
+    "radar": """**How to read this plot:** this is a polar radar chart. Each spoke is one strategic dimension: Finance, Risk resilience, Sustainability, Operations, Products, Regulation and Investment. The distance from the centre is the weighted 1–5 score for that company on that dimension. A value near 5 means the extracted evidence indicates a stronger position or lower concern; a value near 1 means a weaker position or higher concern. The coloured polygon is the company's overall strategic shape, not a raw KPI such as revenue or EBIT.\n\n**What this plot can analyse:** the radar is useful for management triage. It answers where Nordzucker, as the focal company, is strategically exposed relative to peer benchmarks and which detailed tab should be opened next. It should not be used as the final conclusion because each axis compresses multiple quantitative and qualitative indicators. Its value is to show whether the pressure is concentrated in one area, such as Finance, or whether it is broad across risk, products and investment.\n\n**What the current data suggests:** Nordzucker shows a clearly uneven profile: Sustainability and Investment are comparatively stronger, while Finance and Risk resilience are weaker. This is the strategic signal to investigate first: Nordzucker has credible transition and investment ambition, but the recent operating loss means the commercial model is under immediate pressure. Südzucker has the strongest overall radar profile because scale, disclosure quality and product breadth support several axes at once. Tereos and ABF Sugar are useful peer benchmarks for diversification, while ABF also demonstrates that a diversified sugar footprint can still suffer a sharp margin shock. For a business discussion, the key question is therefore not “who has the largest radar area?”, but where Nordzucker must act first: margin recovery, commodity-sugar exposure, or prioritisation of investment under weaker earnings.""",
+
+    "latest_margin": """**How to read this plot:** this is a horizontal bar chart. The x-axis is the latest available operating margin in percent, calculated as operating result divided by revenue. The y-axis lists Nordzucker and the peer businesses, with the fiscal year shown in the label. Bars extending to the right indicate positive current profitability; bars extending to the left indicate operating loss.\n\n**What this plot can analyse:** this chart is the fastest diagnostic of current financial stress. It does not explain the cause of the loss by itself, but it shows whether the starting point for strategic analysis is normal competitive positioning or an urgent margin-recovery problem. For sugar producers this is more meaningful than revenue alone, because revenue can remain high during price inflation while earnings quality collapses when prices reverse or beet costs stay high.\n\n**What the current data suggests:** Nordzucker is the clear negative outlier in the latest data, with approximately -9.65% in 2025/26. ABF Sugar is close to break-even at about -0.10% in 2024/25, while Tereos and Südzucker remain slightly positive at group level in 2025/26. This indicates that Nordzucker's situation should not be explained only as a generic EU sugar downturn. The chart should trigger follow-up questions on pricing contracts, beet cost pass-through, factory utilisation, fixed-cost absorption and the timing of sales relative to the price decline.""",
+
+    "overall_score": """**How to read this plot:** this is a horizontal bar chart. The x-axis is the overall strategic benchmark score from 1 to 5. The y-axis lists Nordzucker and peer companies. The score is calculated from the weighted axis scores, so it combines Finance, Risk, Sustainability, Operations, Products, Regulation and Investment into one summary number.\n\n**What this plot can analyse:** the chart is a benchmark-prioritisation tool. It helps identify which peers are most useful to study in detail, but it is not a final ranking of company quality. Because the score is modelled from extracted evidence, it must be read together with the data-gap and confidence tables. A company with lower disclosure can receive a weaker or less certain score even if its real business position is stronger than the available documents show.\n\n**What the current data suggests:** Südzucker has the highest overall score in the current dataset, followed by Tereos and ABF Sugar. Nordzucker is close to Pfeifer & Langen but below the more diversified or more transparent peers. The business interpretation is that Nordzucker's profile is not weak across all dimensions; rather, its finance and risk scores are dragging down an otherwise credible sustainability and investment story. For management use, Südzucker should be benchmarked for reporting depth and portfolio breadth, Tereos for product/raw-material diversification, and ABF Sugar for understanding how quickly a sugar segment can lose profitability under price and cost pressure.""",
+
+    "finance_margin": """**How to read this plot:** this is a line chart. The x-axis is fiscal year, normalised to the same fiscal-year style across companies. The y-axis is operating margin in percent. Each coloured line is one company or business basis from `ci_financial_timeseries.csv`; hover data shows the reporting basis, revenue, operating result and currency. ABF is shown as ABF Sugar segment data, while Südzucker and Tereos in this chart are group-level financial series unless the CSV basis says otherwise.\n\n**What this plot can analyse:** the chart shows whether profitability is cyclical, resilient or collapsing. It separates earnings quality from revenue scale: a company may grow revenue when sugar prices are high, but a resilient business should protect margin when prices fall. This view is therefore central for assessing whether Nordzucker's latest loss is a one-year shock, a sector-cycle effect, or a company-specific margin problem.\n\n**What the current data suggests:** Nordzucker rises from about 4.85% in 2020/21 to a peak of 14.40% in 2023/24, then drops to 3.65% in 2024/25 and -9.65% in 2025/26. Tereos and Südzucker also show margin deterioration after the high-price phase, but their group-level margins remain slightly positive in 2025/26. ABF Sugar moves from 9.10% in 2023/24 to about -0.10% in 2024/25. The business signal is that the sector cycle is real, but Nordzucker's downside is more severe than the group-level peer comparison. The next practical analysis should isolate beet cost, fixed-cost absorption, contract timing and exposure to commodity white sugar prices.""",
+
+    "revenue_index": """**How to read this plot:** this is a line chart. The x-axis is fiscal year. The y-axis is a revenue index, where each company's first available year is set to 100. Each line shows how that company changed relative to its own starting point, not how large it is in absolute terms.\n\n**What this plot can analyse:** the chart allows comparison across companies with different sizes, currencies and reporting scopes. It is useful in sugar because absolute revenue comparisons between EUR and GBP companies can be misleading. The plot helps distinguish three situations: revenue expansion driven by price inflation, real operational growth, and revenue contraction after a market peak.\n\n**What the current data suggests:** most companies expand strongly into 2022/23 or 2023/24 and then contract, which matches the sugar-price cycle. Nordzucker's revenue index peaks around 175 in 2023/24 before falling back by 2025/26. Tereos shows a similar reversal, and ABF Sugar's 2024/25 revenue is below its prior peak. The practical interpretation is that revenue growth alone was not a stable strength signal. If indexed revenue falls at the same time as margin falls, the problem is not only cost inflation; it also points to weaker market prices, volume pressure or reduced value capture.""",
+
+    "segment_margin": """**How to read this plot:** this is a line chart. The x-axis is fiscal year and the y-axis is sugar-related operating margin in percent. Nordzucker is treated as the sugar-focused focal company. For Südzucker, Tereos and ABF, the chart uses their sugar-related segment where available rather than the full group.\n\n**What this plot can analyse:** this is the most directly comparable profitability view for Nordzucker. Group-level numbers can hide sugar-specific stress because diversified peers have other businesses that absorb volatility. This chart focuses on the question Nordzucker actually needs to answer: which peer can keep sugar economics positive when the sugar market turns down?\n\n**What the current data suggests:** the sugar-related businesses show a broad peak around 2023/24 followed by a sharp reversal. Südzucker's sugar segment falls from 13.41% in 2023/24 to -0.34% in 2024/25 and -6.35% in 2025/26. Tereos Sugar and Renewables Europe falls to -2.24% in 2025/26. ABF Sugar falls from 9.10% in 2023/24 to -0.10% in 2024/25. Nordzucker falls from 14.40% to -9.65%. This plot shows that the downturn is sector-wide, but Nordzucker's drawdown is particularly severe and should be analysed at the level of pricing, beet cost, operational flexibility and restructuring response.""",
+
+    "market_price": """**How to read this plot:** this is a line chart. The x-axis is month and the y-axis is the EU white sugar price in EUR per tonne. Each point is the market price observation stored in `ci_market_price_timeseries.csv`.\n\n**What this plot can analyse:** the chart links company performance to the external market cycle. It prevents an over-simplified conclusion that losses are purely management failures or purely company-specific. The business question is how quickly the observed price decline flows through to revenue, margin and restructuring pressure for each company.\n\n**What the current data suggests:** the extracted EU white sugar price falls from about EUR 619/t in October 2024 to about EUR 502/t in April 2026. This decline overlaps with margin deterioration at Nordzucker, Südzucker's sugar segment, Tereos Sugar and Renewables Europe and ABF Sugar. For Nordzucker, the practical message is that market-price monitoring should be connected directly to margin scenarios, sales-contract timing and beet procurement commitments. A falling price line is not just market context; it is an early-warning input for EBIT risk.""",
+
+    "drawdown": """**How to read this plot:** this is a horizontal bar chart. The x-axis is the drop in operating margin from each company's recent peak to its latest available sugar-related margin, measured in percentage points. The y-axis lists Nordzucker and peer sugar-related businesses. A longer bar means a larger loss of profitability from the recent best point.\n\n**What this plot can analyse:** this chart converts risk into observed business impact. It does not ask whether a risk is mentioned in a report; it asks how much profitability has actually been lost. This is useful because a company can still have a small positive latest margin but already have suffered a very large deterioration from its peak.\n\n**What the current data suggests:** Nordzucker has the largest drawdown in the current dataset, about 24.05 percentage points from its 2023/24 peak to 2025/26. Südzucker's sugar segment also shows a large drawdown of about 19.76 percentage points, while Tereos and ABF Sugar show smaller but still material drops. This indicates that the industry downturn is broad, but Nordzucker's loss of margin is particularly acute. In business terms, Nordzucker should investigate not only the latest loss, but the speed and depth of the reversal after the high-price year.""",
+
+    "climate_targets": """**How to read this plot:** this is a grouped bar chart. The x-axis lists companies. The y-axis shows target value or ambition value in percent. Bar colours represent target scope or target type, such as Scope 1+2, Scope 3, FLAG/agriculture or value-chain climate neutrality. Values of 100 for net-zero or climate-neutrality targets should be read as an ambition marker, not as a directly comparable percentage reduction achieved.\n\n**What this plot can analyse:** the chart compares the structure and coverage of climate commitments. This matters because sugar companies have different decarbonisation levers: factory energy and process heat sit mainly in Scope 1/2, while beet cultivation, cane farming and land-use emissions sit in Scope 3 or FLAG. A target is strategically stronger when it covers the emission sources that are material for the business model.\n\n**What the current data suggests:** Nordzucker has a relatively complete target structure in the extracted data: Scope 1+2 reduction, Scope 3 reduction and FLAG/agriculture. ABF Sugar also has explicit near-term targets for energy/industry Scope 1+2 and Scope 3. Pfeifer & Langen and Tereos show long-term net-zero or climate-neutrality ambitions. The practical reading is that Nordzucker's sustainability story is credible at the target level, but the next question is whether investment and operational emissions trends are moving fast enough to make those targets realistic.""",
+
+    "emissions": """**How to read this plot:** this is a line chart. The x-axis is reporting year and the y-axis is reported emissions in thousand tonnes CO₂e. Each line represents a company-scope series available in `ci_emissions_timeseries.csv`; hover data identifies the metric and source.\n\n**What this plot can analyse:** the plot tests whether climate targets are supported by operational evidence. It is a reality check: targets show intention, while reported emissions show whether plant energy systems and direct operations are actually moving in the right direction. The chart is also useful for identifying where data comparability is weak.\n\n**What the current data suggests:** Nordzucker's Scope 1 series declines gradually from about 1,171 kt in 2018 to about 1,096 kt in 2022, which indicates progress but not a dramatic step-change. ABF Sugar reports Scope 1+2 market-based emissions decreasing from about 1,888 kt in 2024 to about 1,724 kt in 2025. These lines should not be compared as absolute performance rankings because they use different scopes and reporting bases. For Nordzucker, the business value is internal trend monitoring: if emissions do not fall faster, transition investment may need to be prioritised toward heat, energy and factory process efficiency.""",
+
+    "footprint": """**How to read this plot:** this is a scatter plot. The x-axis is the number of countries in the operating footprint. The y-axis is the number of plants or production locations. Bubble size represents employees where available, and the label identifies each company.\n\n**What this plot can analyse:** the chart separates geographic diversification from fixed-asset complexity. More countries can reduce dependence on one harvest region, one regulatory regime or one customer market. More plants, however, can also increase fixed costs, maintenance burden and restructuring exposure when margins weaken.\n\n**What the current data suggests:** Tereos and Südzucker have the broadest operational footprints in countries and plants. ABF Sugar has fewer countries and plants than those groups but a large workforce and a cane/beet footprint. Nordzucker sits between a focused European beet model and broader international exposure because Mackay Sugar adds cane exposure in Australia. Pfeifer & Langen appears more regionally concentrated. For Nordzucker, the business question is whether broader footprint is a resilience asset or whether operational complexity would create additional fixed-cost risk.""",
+
+    "production_mix": """**How to read this plot:** this is a stacked or grouped bar chart depending on the selected data. The x-axis lists companies. The y-axis is visible sugar production volume in million tonnes. Bar colour separates beet sugar and cane sugar where the split was extracted. If a company has total capacity but no beet/cane split in the CSV, it may not appear fully in this plot even though it appears in the operations table.\n\n**What this plot can analyse:** the chart connects production structure to agricultural and market risk. Beet sugar is more directly exposed to European beet cultivation, EU sugar policy, energy-intensive processing and beet contracts. Cane sugar introduces different exposure to climate, water, labour, regional markets and global trade. The mix is therefore more informative than total volume alone.\n\n**What the current data suggests:** Nordzucker is shown as mainly beet-based, with about 2.8 million tonnes beet sugar and about 0.6 million tonnes cane-related volume in the extracted profile. Pfeifer & Langen is shown as beet-focused. ABF Sugar has about 4.0 million tonnes capacity in the operations profile, but because the extracted data does not split that total into beet and cane volumes, it is not fully represented in this beet/cane bar chart. The practical conclusion is that this plot should be used together with the operations table, not alone, when discussing ABF and Tereos.""",
+
+    "product_heatmap": """**How to read this plot:** this is a heatmap. The x-axis lists product or co-product categories. The y-axis lists companies. Each cell is binary: 1 means the category was identified in the extracted evidence, and 0 means it was not identified in the current dataset. This is a presence map, not a revenue-share or profit-contribution chart.\n\n**What this plot can analyse:** the heatmap shows portfolio exposure and diversification options. It helps identify whether a company is mainly exposed to commodity sugar or whether it has visible adjacent activities such as animal feed, molasses, ethanol, starch, speciality sugars, sweeteners or energy. It can guide strategic questions, but it cannot prove that a category is profitable, scalable or strategically attractive.\n\n**What the current data suggests:** Tereos has the broadest extracted product portfolio, reflecting sugar, alcohol/ethanol, starch and additional agricultural raw-material use. Nordzucker and Südzucker also show broad co-product coverage, while ABF Sugar and Pfeifer & Langen show narrower extracted breadth. The important business point is that product breadth only becomes valuable if it reduces commodity-sugar dependence or creates higher-margin outlets. Ethanol is a useful example: it can diversify output, but ABF/Vivergo evidence also shows it can become a source of loss and restructuring risk.""",
+
+    "product_breadth": """**How to read this plot:** this is a horizontal bar chart. The x-axis counts the number of visible product or co-product categories identified for each company. The y-axis lists companies. A higher bar means broader disclosed portfolio coverage in the current extraction.\n\n**What this plot can analyse:** the chart is a quick screening indicator for diversification. It helps decide which peer portfolios deserve deeper review, but it is not a quality or profitability score. A company with fewer categories may still have stronger margins if those categories are profitable; a company with many categories may still be exposed if they are low-margin or volatile.\n\n**What the current data suggests:** Tereos has the highest breadth in the current extraction, while Nordzucker and Südzucker also show broad portfolios. ABF Sugar and Pfeifer & Langen have fewer visible categories. For Nordzucker, the practical use is to identify which adjacencies should be studied next: feed and molasses for co-product value, ethanol for both diversification and risk, and speciality or smart-ingredient products for potential margin upgrading.""",
+
+    "reg_readiness": """**How to read this plot:** this is a horizontal bar chart. The x-axis is a curated reporting and policy-readiness score from 1 to 5. The y-axis lists companies. Hover data shows the regulatory topic and interpretation. A higher score means stronger extracted evidence of structured sustainability, CSRD/ESRS-style, taxonomy or policy-related reporting.\n\n**What this plot can analyse:** this chart compares disclosure readiness, not legal risk itself. A company can disclose well and still face high regulatory exposure. The chart is useful for identifying which peer reports Nordzucker can use as templates for CSRD-style communication and where gaps remain in the extracted evidence.\n\n**What the current data suggests:** Südzucker scores highest because its dedicated sustainability statement provides strong structured reporting. Tereos and ABF Sugar also show useful climate or non-financial reporting evidence. Nordzucker has credible sustainability targets but less complete CSRD-format evidence in the current dataset. Pfeifer & Langen is harder to benchmark because financial and regulatory disclosure is less complete. The practical implication is that Nordzucker should benchmark reporting format against listed peers while separately analysing real exposure to EU sugar policy, energy, beet sourcing and bioethanol rules.""",
+
+    "reg_market": """**How to read this plot:** this is the same line-chart structure as the market-price plot. The x-axis is month and the y-axis is EU white sugar price in EUR per tonne. In the regulation tab, it is used as a policy and market-context indicator rather than as a pure price chart.\n\n**What this plot can analyse:** the chart connects regulation to commercial outcomes. EU sugar regulation, import policy, market-balance measures and agricultural rules matter most when they change supply-demand pressure and therefore prices. The plot helps prevent regulation from being treated as an isolated compliance topic.\n\n**What the current data suggests:** the price decline from about EUR 619/t in October 2024 to about EUR 502/t in April 2026 shows a weaker market environment. This matters for regulation because policy decisions on imports or market support become more commercially important when producers are already under margin pressure. For Nordzucker, regulatory monitoring should therefore be linked to price scenarios and EBIT sensitivity, not stored as a separate legal dashboard.""",
+
+    "capex": """**How to read this plot:** this is a line chart. The x-axis is fiscal year. The y-axis is reported capex or fixed-asset investment in millions of each company's reported currency. Each line represents a company where capex was available. Because currencies and reporting scopes differ, absolute capex levels should not be compared without caution.\n\n**What this plot can analyse:** the chart shows whether companies continue investing through the cycle or reduce investment when profitability weakens. In sugar production, capex can mean maintenance, energy transition, efficiency improvement, growth or restructuring. The same number can therefore be positive or defensive depending on context.\n\n**What the current data suggests:** Nordzucker's investment rises through the strong-margin period and remains meaningful even as profitability deteriorates, although 2025/26 is lower than 2024/25. Südzucker continues to show substantial group investment, while ABF Sugar reports sizeable investment in 2023/24 and 2024/25 despite the margin collapse. The business question is not simply “who invests most?”, but whether capex is directed toward cost reduction, emissions reduction, asset renewal or restructuring. Nordzucker should classify capex by strategic intent before using it as a positive investment signal.""",
+
+    "investment_intensity": """**How to read this plot:** this is a bubble scatter plot. The x-axis is latest capex intensity, calculated as capex divided by revenue in percent. The y-axis is latest operating margin in percent. Bubble size represents revenue scale. Only companies with capex, revenue and margin data are shown.\n\n**What this plot can analyse:** the chart links investment burden to earnings capacity. The most important area is high capex intensity combined with low or negative margin, because it can indicate defensive investment, transition cost, restructuring pressure or a temporary need to spend despite weak cash generation.\n\n**What the current data suggests:** ABF Sugar appears with the highest latest capex intensity, around 15.3% of revenue, while its latest margin is close to break-even/loss. Nordzucker has lower capex intensity, around 6.8%, but much weaker latest margin at about -9.65%. Südzucker has a similar capex intensity to Nordzucker but remains slightly profitable at group level. For Nordzucker, the practical takeaway is that investment decisions should be stress-tested against margin recovery: projects that directly reduce cost, improve energy efficiency or protect compliance should be prioritised over discretionary expansion.""",
+}
 
 def _safe_companies(selected):
     selected = selected or DEFAULT_COMPANIES
-    known = set(axis_scores["company_id"].unique())
+    known = set(pd.concat([
+        financials.get("company_id", pd.Series(dtype=str)),
+        axis_scores.get("company_id", pd.Series(dtype=str)),
+        overall_scores.get("company_id", pd.Series(dtype=str)),
+    ]).dropna().unique())
     return [x for x in selected if x in known] or DEFAULT_COMPANIES
 
 
-def _axis_label(axis):
-    return DISPLAY_AXIS.get(axis, axis.title())
+def _sort_years(df, col="fiscal_year"):
+    if df.empty or col not in df.columns:
+        return df
+    out = df.copy()
+    out["_year_order"] = out[col].map(YEAR_ORDER).fillna(99)
+    return out.sort_values(["_year_order", col])
 
 
-def _kpi_cards(selected_companies):
-    selected_companies = _safe_companies(selected_companies)
-    df = overall_scores[overall_scores["company_id"].isin(selected_companies)].copy()
+def _latest_rows(df, value_col=None):
     if df.empty:
-        return dbc.Alert("No score data available.", color="light")
-    cards = []
-    for r in df.sort_values("overall_score_1_5", ascending=False).itertuples():
-        cards.append(
-            dbc.Col(
-                dbc.Card(
-                    dbc.CardBody([
-                        html.Div(r.company_name, className="kpi-title"),
-                        html.Div(f"{r.overall_score_1_5:.2f} / 5", className="kpi-value-small"),
-                        html.Div(f"Evidence confidence: {r.avg_confidence:.2f}", className="kpi-sub"),
-                    ]),
-                    className="kpi-card score-kpi-card",
-                ),
-                md=2,
-            )
-        )
-    return dbc.Row(cards, className="g-2")
+        return df
+    work = df.copy()
+    if value_col:
+        work = work[pd.notna(work[value_col])]
+    work["_year_order"] = work["fiscal_year"].map(YEAR_ORDER).fillna(99)
+    return work.sort_values("_year_order").groupby("company_id", as_index=False).tail(1)
+
+
+def _company_name(cid):
+    tables = [overall_scores, financials, operations]
+    for table in tables:
+        if not table.empty and "company_id" in table.columns and "company_name" in table.columns:
+            s = table.loc[table["company_id"] == cid, "company_name"]
+            if not s.empty:
+                return s.iloc[0]
+    return cid
+
+
+def _plot_card(title, fig, explanation, source_file=None, height_note=None):
+    body = []
+    if source_file:
+        body.append(data_note(source_file))
+    body.append(dcc.Graph(figure=fig))
+    body.append(dcc.Markdown(explanation, className="plot-explanation"))
+    if height_note:
+        body.append(html.Div(height_note, className="data-note"))
+    return dbc.Card([dbc.CardHeader(title), dbc.CardBody(body)], className="analysis-card")
+
+
+def _empty_fig(message="No data available"):
+    fig = go.Figure()
+    fig.add_annotation(text=message, showarrow=False, x=0.5, y=0.5)
+    fig.update_layout(height=320, margin=dict(l=10, r=10, t=10, b=10))
+    return fig
 
 
 def _make_radar(selected_companies):
-    selected_companies = _safe_companies(selected_companies)
-    df = axis_scores[axis_scores["company_id"].isin(selected_companies)].copy()
+    if axis_scores.empty:
+        return _empty_fig()
+    df = axis_scores[axis_scores["company_id"].isin(_safe_companies(selected_companies))].copy()
     fig = go.Figure()
-    labels = [_axis_label(axis) for axis in AXIS_ORDER]
+    labels = [axis_scores.loc[axis_scores["axis"] == axis, "display_axis"].iloc[0] if not axis_scores.loc[axis_scores["axis"] == axis, "display_axis"].empty else AXIS_LABELS.get(axis, axis) for axis in AXIS_ORDER]
     for company_id, g in df.groupby("company_id"):
         g = g.set_index("axis").reindex(AXIS_ORDER).reset_index()
         scores = g["score_1_5"].tolist()
-        fig.add_trace(
-            go.Scatterpolar(
-                r=scores + scores[:1],
-                theta=labels + labels[:1],
-                fill="toself",
-                name=g["company_name"].dropna().iloc[0],
-                hovertemplate="%{theta}<br>Score: %{r:.2f}/5<extra>%{fullData.name}</extra>",
-            )
-        )
-    fig.update_layout(
-        height=560,
-        margin=dict(l=30, r=30, t=30, b=30),
-        polar=dict(radialaxis=dict(visible=True, range=[0, 5], tickvals=[1,2,3,4,5])),
-        legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
-    )
+        name = g["company_name"].dropna().iloc[0] if not g["company_name"].dropna().empty else company_id
+        if company_id == "NORDZUCKER":
+            name = "Nordzucker AG (focal)"
+        fig.add_trace(go.Scatterpolar(r=scores + scores[:1], theta=labels + labels[:1], fill="toself", name=name, hovertemplate="%{theta}<br>Score: %{r:.2f}/5<extra>%{fullData.name}</extra>"))
+    fig.update_layout(height=540, margin=dict(l=25, r=25, t=25, b=35), polar=dict(radialaxis=dict(visible=True, range=[0, 5])), legend=dict(orientation="h", y=-0.18))
     return fig
 
 
-def _make_axis_bar(selected_companies, selected_axis):
-    selected_companies = _safe_companies(selected_companies)
-    df = axis_scores[(axis_scores["company_id"].isin(selected_companies)) & (axis_scores["axis"] == selected_axis)].copy()
-    df = df.sort_values("score_1_5", ascending=True)
-    fig = px.bar(
-        df,
-        x="score_1_5",
-        y="company_name",
-        orientation="h",
-        text="score_1_5",
-        hover_data=["score_confidence"],
-    )
+def _make_overall_bar(selected_companies):
+    if overall_scores.empty:
+        return _empty_fig()
+    df = overall_scores[overall_scores["company_id"].isin(_safe_companies(selected_companies))].copy().sort_values("overall_score_1_5")
+    df["display_name"] = df.apply(lambda r: "Nordzucker AG (focal)" if r.company_id == "NORDZUCKER" else r.company_name, axis=1)
+    fig = px.bar(df, x="overall_score_1_5", y="display_name", orientation="h", text="overall_score_1_5", hover_data=["avg_confidence"])
     fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
-    fig.update_layout(
-        height=360,
-        margin=dict(l=10, r=35, t=10, b=10),
-        xaxis_title=f"{_axis_label(selected_axis)} score, 1-5",
-        yaxis_title="",
-        xaxis=dict(range=[0, 5]),
-        showlegend=False,
-    )
+    fig.update_layout(height=360, margin=dict(l=10, r=35, t=10, b=10), xaxis=dict(range=[0, 5], title="Strategic score, 1–5"), yaxis_title="", showlegend=False)
     return fig
 
 
-def _make_score_matrix(selected_companies):
-    selected_companies = _safe_companies(selected_companies)
-    df = axis_scores[axis_scores["company_id"].isin(selected_companies)].copy()
-    matrix = df.pivot(index="company_name", columns="display_axis", values="score_1_5")
-    ordered_cols = [_axis_label(a) for a in AXIS_ORDER if _axis_label(a) in matrix.columns]
-    matrix = matrix[ordered_cols]
-    fig = px.imshow(
-        matrix,
-        text_auto=".2f",
-        aspect="auto",
-        zmin=1,
-        zmax=5,
-        labels=dict(x="Axis", y="Company", color="Score"),
-    )
-    fig.update_layout(height=380, margin=dict(l=10, r=10, t=10, b=10))
-    return fig
-
-
-def _score_detail_table(selected_companies, selected_axis):
-    selected_companies = _safe_companies(selected_companies)
-    df = score_details[(score_details["company_id"].isin(selected_companies)) & (score_details["axis"] == selected_axis)].copy()
-    cols = [
-        "company_name", "display_axis", "scoring_item", "item_weight", "item_score_1_5",
-        "weighted_points", "item_rationale", "evidence_record_ids"
-    ]
-    return compact_table(df, cols, page_size=12)
-
-
-def _evidence_table(selected_companies, selected_axis):
-    selected_companies = _safe_companies(selected_companies)
-    df = indicators[(indicators["company_id"].isin(selected_companies)) & (indicators["axis"] == selected_axis)].copy()
-    cols = [
-        "record_id", "company_name", "axis", "metric_name", "period", "value_numeric",
-        "value_text", "unit", "source_type", "source_document", "source_page", "confidence", "evidence_text"
-    ]
-    return compact_table(df, cols, page_size=8)
-
-
-def _coverage_table(selected_companies):
-    selected_companies = _safe_companies(selected_companies)
-    df = coverage[coverage["company_id"].isin(selected_companies)].copy()
-    cols = ["company_name", "axis", "records_total", "quantitative_records", "qualitative_records", "avg_confidence", "coverage_status", "notes"]
-    return compact_table(df, cols, page_size=10)
-
-
-def _gap_cards(selected_companies):
-    selected_companies = _safe_companies(selected_companies)
-    df = gaps[gaps["company_id"].isin(selected_companies)].copy()
+def _make_latest_margin_bar(selected_companies):
+    df = financials[financials["company_id"].isin(_safe_companies(selected_companies))].copy()
+    df = _latest_rows(df, "operating_margin_pct")
     if df.empty:
-        return dbc.Alert("No critical data gaps recorded for the selected companies.", color="light")
-    cards = []
-    for r in df.itertuples():
-        cards.append(
-            dbc.Col(
-                dbc.Alert([
-                    html.Strong(r.company_id.replace("_", " ").title()),
-                    html.Div(r.gap),
-                    html.Small(r.impact),
-                ], color="warning", className="mb-2"),
-                md=6,
-            )
-        )
-    return dbc.Row(cards, className="g-2")
+        return _empty_fig("No operating-margin data available")
+    df["company_label"] = df.apply(lambda r: "Nordzucker AG (focal)" if r.company_id == "NORDZUCKER" else r.company_name, axis=1)
+    df["label"] = df["company_label"] + " (" + df["fiscal_year"].astype(str) + ")"
+    hover_cols = [c for c in ["fiscal_year", "reported_fiscal_year", "basis", "currency", "revenue_m", "operating_result_m"] if c in df.columns]
+    df = df.sort_values("operating_margin_pct")
+    fig = px.bar(df, x="operating_margin_pct", y="label", orientation="h", text="operating_margin_pct", hover_data=hover_cols)
+    fig.update_traces(texttemplate="%{text:.1f}%", textposition="outside")
+    fig.update_layout(height=360, margin=dict(l=10, r=40, t=10, b=10), xaxis_title="Latest available operating margin (%)", yaxis_title="", showlegend=False)
+    return fig
 
 
-def layout():
+def _make_finance_margin_trend(selected_companies):
+    df = financials[financials["company_id"].isin(_safe_companies(selected_companies)) & pd.notna(financials["operating_margin_pct"])].copy()
+    if df.empty:
+        return _empty_fig("No margin time series available")
+    df = _sort_years(df)
+    df["display_name"] = df.apply(lambda r: "Nordzucker AG (focal)" if r.company_id == "NORDZUCKER" else r.company_name, axis=1)
+    fig = px.line(df, x="fiscal_year", y="operating_margin_pct", color="display_name", markers=True, hover_data=[c for c in ["reported_fiscal_year", "basis", "revenue_m", "operating_result_m", "currency"] if c in df.columns])
+    fig.update_layout(height=430, margin=dict(l=10, r=10, t=10, b=10), xaxis_title="Fiscal year", yaxis_title="Operating margin (%)", legend_title="Company")
+    return fig
+
+
+def _make_revenue_index_trend(selected_companies):
+    df = financials[financials["company_id"].isin(_safe_companies(selected_companies)) & pd.notna(financials["revenue_m"])].copy()
+    if df.empty:
+        return _empty_fig("No revenue data available")
+    df = _sort_years(df)
+    def idx(g):
+        g = g.copy()
+        first = g["revenue_m"].dropna().iloc[0] if not g["revenue_m"].dropna().empty else None
+        g["revenue_index"] = (g["revenue_m"] / first * 100).round(1) if first else None
+        return g
+    df = df.groupby("company_id", group_keys=False).apply(idx)
+    df["display_name"] = df.apply(lambda r: "Nordzucker AG (focal)" if r.company_id == "NORDZUCKER" else r.company_name, axis=1)
+    fig = px.line(df, x="fiscal_year", y="revenue_index", color="display_name", markers=True, hover_data=[c for c in ["reported_fiscal_year", "revenue_m", "currency", "basis"] if c in df.columns])
+    fig.update_layout(height=380, margin=dict(l=10, r=10, t=10, b=10), xaxis_title="Fiscal year", yaxis_title="Revenue index (first available year = 100)", legend_title="Company")
+    return fig
+
+
+def _make_segment_margin_trend(selected_companies):
+    df = segments[segments["company_id"].isin(_safe_companies(selected_companies)) & pd.notna(segments["operating_margin_pct"])].copy()
+    if df.empty:
+        return _empty_fig("No segment margin data available")
+    df = _sort_years(df)
+    df["display_name"] = df.apply(lambda r: "Nordzucker AG (focal)" if r.company_id == "NORDZUCKER" else f"{r.company_name}: {r.segment}", axis=1)
+    fig = px.line(df, x="fiscal_year", y="operating_margin_pct", color="display_name", markers=True, hover_data=[c for c in ["reported_fiscal_year", "segment", "revenue_m", "operating_result_m", "currency"] if c in df.columns])
+    fig.update_layout(height=430, margin=dict(l=10, r=10, t=10, b=10), xaxis_title="Fiscal year", yaxis_title="Sugar-related operating margin (%)", legend_title="Sugar-related business")
+    return fig
+
+
+def _make_market_price_trend():
+    if market_prices.empty:
+        return _empty_fig("No market price data available")
+    df = market_prices.copy()
+    df["_ord"] = range(len(df))
+    fig = px.line(df, x="period", y="price_eur_per_t", markers=True, hover_data=["source_document"])
+    fig.update_layout(height=380, margin=dict(l=10, r=10, t=10, b=10), xaxis_title="Month", yaxis_title="EU white sugar price (EUR/t)")
+    fig.update_xaxes(tickangle=-35)
+    return fig
+
+
+def _make_profitability_drawdown(selected_companies):
+    df = segments[segments["company_id"].isin(_safe_companies(selected_companies)) & pd.notna(segments["operating_margin_pct"])].copy()
+    if df.empty:
+        return _empty_fig("No margin data available")
+    latest = _latest_rows(df, "operating_margin_pct")[["company_id", "company_name", "operating_margin_pct", "fiscal_year"]].rename(columns={"operating_margin_pct": "latest_margin", "fiscal_year": "latest_year"})
+    peak = df.groupby("company_id", as_index=False)["operating_margin_pct"].max().rename(columns={"operating_margin_pct": "peak_margin"})
+    out = latest.merge(peak, on="company_id", how="left")
+    out["margin_drop_from_peak"] = (out["peak_margin"] - out["latest_margin"]).round(2)
+    out["label"] = out.apply(lambda r: "Nordzucker AG (focal)" if r.company_id == "NORDZUCKER" else r.company_name, axis=1)
+    out = out.sort_values("margin_drop_from_peak")
+    fig = px.bar(out, x="margin_drop_from_peak", y="label", orientation="h", text="margin_drop_from_peak", hover_data=["peak_margin", "latest_margin", "latest_year"])
+    fig.update_traces(texttemplate="%{text:.1f} pp", textposition="outside")
+    fig.update_layout(height=360, margin=dict(l=10, r=35, t=10, b=10), xaxis_title="Drop from recent peak margin (percentage points)", yaxis_title="", showlegend=False)
+    return fig
+
+
+def _make_sustainability_targets(selected_companies):
+    df = sustainability[sustainability["company_id"].isin(_safe_companies(selected_companies)) & pd.notna(sustainability["value_numeric"])].copy()
+    if df.empty:
+        return _empty_fig("No sustainability targets available")
+    df["label"] = df.apply(lambda r: "Nordzucker AG (focal)" if r.company_id == "NORDZUCKER" else r.company_name, axis=1)
+    fig = px.bar(df, x="label", y="value_numeric", color="scope", barmode="group", hover_data=["metric", "target_year", "unit", "evidence_note"])
+    fig.update_layout(height=450, margin=dict(l=10, r=10, t=10, b=80), xaxis_title="Company", yaxis_title="Target value / ambition (%)", legend_title="Scope / target type")
+    fig.update_xaxes(tickangle=-25)
+    return fig
+
+
+def _make_emissions_trend(selected_companies):
+    if emissions.empty:
+        return _empty_fig("No emission time series available")
+    df = emissions[emissions["company_id"].isin(_safe_companies(selected_companies))].copy() if "company_id" in emissions.columns else emissions.copy()
+    if df.empty:
+        return _empty_fig("No emission time series for selected companies")
+    if "value_kt_co2e" not in df.columns:
+        df["value_kt_co2e"] = pd.to_numeric(df.get("value"), errors="coerce")
+    df["display_name"] = df.apply(lambda r: "Nordzucker AG (focal)" if r.company_id == "NORDZUCKER" else r.company_name, axis=1)
+    fig = px.line(df, x="year", y="value_kt_co2e", color="display_name", markers=True, hover_data=[c for c in ["metric", "unit", "source_link"] if c in df.columns])
+    fig.update_layout(height=380, margin=dict(l=10, r=10, t=10, b=10), xaxis_title="Year", yaxis_title="Reported emissions (kt CO₂e)", legend_title="Company")
+    return fig
+
+
+def _make_footprint_scatter(selected_companies):
+    df = operations[operations["company_id"].isin(_safe_companies(selected_companies))].copy()
+    if df.empty:
+        return _empty_fig("No operations data available")
+    df["label"] = df.apply(lambda r: "Nordzucker AG (focal)" if r.company_id == "NORDZUCKER" else r.company_name, axis=1)
+    fig = px.scatter(df, x="countries", y="plants", size="employees", color="label", text="label", hover_data=["scope", "employees", "sugar_production_m_tonnes", "raw_materials"])
+    fig.update_traces(textposition="top center")
+    fig.update_layout(height=430, margin=dict(l=10, r=10, t=10, b=10), xaxis_title="Countries / geographic footprint", yaxis_title="Plants / production locations", showlegend=False)
+    return fig
+
+
+def _make_production_mix(selected_companies):
+    df = operations[operations["company_id"].isin(_safe_companies(selected_companies))].copy()
+    if df.empty:
+        return _empty_fig("No production mix data available")
+    cols = ["beet_sugar_m_tonnes", "cane_sugar_m_tonnes"]
+    m = df.melt(id_vars=["company_id", "company_name"], value_vars=cols, var_name="production_type", value_name="volume_m_tonnes")
+    m = m[pd.notna(m["volume_m_tonnes"])]
+    m["label"] = m.apply(lambda r: "Nordzucker AG (focal)" if r.company_id == "NORDZUCKER" else r.company_name, axis=1)
+    fig = px.bar(m, x="label", y="volume_m_tonnes", color="production_type", hover_data=["company_name"])
+    fig.update_layout(height=360, margin=dict(l=10, r=10, t=10, b=70), xaxis_title="Company", yaxis_title="Sugar production volume (million tonnes)", legend_title="Production type")
+    fig.update_xaxes(tickangle=-25)
+    return fig
+
+
+def _make_product_heatmap(selected_companies):
+    df = products[products["company_id"].isin(_safe_companies(selected_companies))].copy()
+    if df.empty:
+        return _empty_fig("No product portfolio data available")
+    matrix = df.pivot(index="company_name", columns="product_category", values="presence").fillna(0)
+    if "Nordzucker AG" in matrix.index:
+        matrix = matrix.rename(index={"Nordzucker AG": "Nordzucker AG (focal)"})
+    fig = px.imshow(matrix, text_auto=True, aspect="auto", zmin=0, zmax=1, labels=dict(x="Product / co-product category", y="Company", color="Presence"))
+    fig.update_layout(height=450, margin=dict(l=10, r=10, t=10, b=95))
+    fig.update_xaxes(tickangle=-35)
+    return fig
+
+
+def _make_product_breadth(selected_companies):
+    df = products[products["company_id"].isin(_safe_companies(selected_companies))].groupby(["company_id", "company_name"], as_index=False)["presence"].sum()
+    if df.empty:
+        return _empty_fig("No product portfolio data available")
+    df["label"] = df.apply(lambda r: "Nordzucker AG (focal)" if r.company_id == "NORDZUCKER" else r.company_name, axis=1)
+    df = df.sort_values("presence")
+    fig = px.bar(df, x="presence", y="label", orientation="h", text="presence")
+    fig.update_layout(height=340, margin=dict(l=10, r=35, t=10, b=10), xaxis_title="Number of visible product/co-product categories", yaxis_title="", showlegend=False)
+    return fig
+
+
+def _make_reg_readiness(selected_companies):
+    df = regulation[regulation["company_id"].isin(_safe_companies(selected_companies)) & pd.notna(regulation["status_score"])].copy()
+    if df.empty:
+        return _empty_fig("No regulation-readiness data available")
+    df["label"] = df.apply(lambda r: "Nordzucker AG (focal)" if r.company_id == "NORDZUCKER" else r.company_name, axis=1)
+    df = df.sort_values("status_score")
+    fig = px.bar(df, x="status_score", y="label", orientation="h", text="status_score", hover_data=["topic", "interpretation"])
+    fig.update_traces(texttemplate="%{text:.1f}", textposition="outside")
+    fig.update_layout(height=360, margin=dict(l=10, r=35, t=10, b=10), xaxis=dict(range=[0,5], title="Reporting / policy readiness score, 1–5"), yaxis_title="", showlegend=False)
+    return fig
+
+
+def _make_capex_trend(selected_companies):
+    df = financials[financials["company_id"].isin(_safe_companies(selected_companies)) & pd.notna(financials["capex_m"])].copy()
+    if df.empty:
+        return _empty_fig("No capex data available")
+    df = _sort_years(df)
+    df["display_name"] = df.apply(lambda r: "Nordzucker AG (focal)" if r.company_id == "NORDZUCKER" else r.company_name, axis=1)
+    fig = px.line(df, x="fiscal_year", y="capex_m", color="display_name", markers=True, hover_data=["revenue_m", "currency", "basis"])
+    fig.update_layout(height=400, margin=dict(l=10, r=10, t=10, b=10), xaxis_title="Fiscal year", yaxis_title="Capex / fixed-asset investment (reported currency, m)", legend_title="Company")
+    return fig
+
+
+def _make_investment_intensity(selected_companies):
+    df = financials[financials["company_id"].isin(_safe_companies(selected_companies)) & pd.notna(financials["capex_m"]) & pd.notna(financials["revenue_m"]) & pd.notna(financials["operating_margin_pct"])].copy()
+    df = _latest_rows(df, "capex_m")
+    if df.empty:
+        return _empty_fig("No investment-intensity data available")
+    df["capex_intensity_pct"] = (df["capex_m"] / df["revenue_m"] * 100).round(2)
+    df["label"] = df.apply(lambda r: "Nordzucker AG (focal)" if r.company_id == "NORDZUCKER" else r.company_name, axis=1)
+    fig = px.scatter(df, x="capex_intensity_pct", y="operating_margin_pct", size="revenue_m", color="label", text="label", hover_data=["fiscal_year", "capex_m", "revenue_m", "currency"])
+    fig.update_traces(textposition="top center")
+    fig.update_layout(height=390, margin=dict(l=10, r=10, t=10, b=10), xaxis_title="Latest capex intensity (% of revenue)", yaxis_title="Latest operating margin (%)", showlegend=False)
+    return fig
+
+
+def _weighting_details():
+    return html.Details([
+        html.Summary("Show radar scoring weights and item definitions"),
+        html.Div([
+            html.Div("Axis weights", className="section-label mt-2"),
+            compact_table(axis_weights, ["display_axis", "axis_weight", "axis_weight_rationale"], page_size=7),
+            html.Div("Sub-item weights", className="section-label mt-3"),
+            compact_table(scoring_items, ["display_axis", "scoring_item", "weight", "weight_rationale", "score_direction"], page_size=12),
+        ], className="mt-2"),
+    ], className="weight-details")
+
+
+def _overview_content(selected_companies):
     return html.Div([
-        html.H2("Competitive Intelligence Scorecard", className="page-title"),
-        html.P(
-            "This view turns extracted official-document evidence into an explainable radar scorecard. "
-            "Scores are rule-based and editable; they are not LLM-generated strategic judgements.",
-            className="page-lead",
-        ),
-        dbc.Alert(
-            "Interpretation rule: higher score is better. For the risk axis, the displayed score means risk resilience / lower concern, not higher risk severity.",
-            color="info",
-            className="mb-3",
-        ),
+        html.H3("Nordzucker-focused competitive intelligence overview", className="section-title"),
+        html.P(PAGE_EXPLANATIONS["overview"], className="page-lead compact-lead"),
+        dbc.Alert("Interpretation rule: Nordzucker is the focal company. Südzucker, Pfeifer & Langen, Tereos and ABF Sugar are peer competitors. Higher radar scores mean stronger position or lower concern; the detailed tabs provide the real analysis behind the summary.", color="info", className="mb-3"),
         dbc.Row([
-            dbc.Col(dbc.Card(dbc.CardBody([
-                html.Label("Companies"),
-                dcc.Dropdown(
-                    id="cs-companies",
-                    options=COMPANY_OPTIONS,
-                    value=DEFAULT_COMPANIES,
-                    multi=True,
-                    clearable=False,
-                ),
-            ])), md=7),
-            dbc.Col(dbc.Card(dbc.CardBody([
-                html.Label("Axis for evidence tables"),
-                dcc.Dropdown(
-                    id="cs-axis",
-                    options=AXIS_OPTIONS,
-                    value="finance",
-                    clearable=False,
-                ),
-            ])), md=3),
-            dbc.Col(dbc.Card(dbc.CardBody([
-                html.Label("Score basis"),
-                html.Div("Official PDFs + official web supplements", className="kpi-value-small"),
-                html.Div("CSV-backed scoring model", className="kpi-sub"),
-            ])), md=2),
-        ], className="control-row"),
-        html.Div(id="cs-kpis", className="mb-3"),
-        dbc.Row([
-            dbc.Col(dbc.Card([
-                dbc.CardHeader("Company radar scorecard"),
-                dbc.CardBody([
-                    data_note("ci_axis_scores.csv + ci_weighted_score_details.csv"),
-                    dcc.Graph(id="cs-radar"),
-                ]),
-            ]), md=8),
-            dbc.Col(dbc.Card([
-                dbc.CardHeader("Scoring logic"),
-                dbc.CardBody([
-                    html.P("The radar aggregates equally weighted axes. Each axis is built from weighted sub-items shown below.", className="data-note"),
-                    dbc.Button("Show / hide weighting table", id="cs-toggle-weights", color="secondary", outline=True, size="sm", className="mb-2"),
-                    dbc.Collapse(
-                        html.Div([
-                            html.Div("Axis weights", className="section-label"),
-                            compact_table(axis_weights, ["display_axis", "axis_weight", "axis_weight_rationale"], page_size=7),
-                            html.Div("Sub-item weights", className="section-label mt-3"),
-                            compact_table(scoring_items, ["display_axis", "scoring_item", "weight", "weight_rationale"], page_size=12),
-                        ]),
-                        id="cs-weight-collapse",
-                        is_open=False,
-                    ),
-                ]),
-            ], className="score-logic-card"), md=4),
+            dbc.Col(_plot_card("Strategic radar summary", _make_radar(selected_companies), PLOT_EXPLANATIONS["radar"], "ci_axis_scores.csv + ci_weighted_score_details.csv"), md=8),
+            dbc.Col(dbc.Card([dbc.CardHeader("Scoring logic"), dbc.CardBody([html.P("The scorecard keeps a transparent weighting model. It is deliberately collapsible so the dashboard can remain presentation-friendly while still showing the scoring basis when questioned."), _weighting_details()])], className="score-logic-card"), md=4),
         ], className="chart-row"),
         dbc.Row([
-            dbc.Col(dbc.Card([dbc.CardHeader("Selected axis ranking"), dbc.CardBody(dcc.Graph(id="cs-axis-bar"))]), md=5),
-            dbc.Col(dbc.Card([dbc.CardHeader("Score matrix"), dbc.CardBody(dcc.Graph(id="cs-score-matrix"))]), md=7),
+            dbc.Col(_plot_card("Latest operating-margin benchmark", _make_latest_margin_bar(selected_companies), PLOT_EXPLANATIONS["latest_margin"], "ci_financial_timeseries.csv"), md=6),
+            dbc.Col(_plot_card("Overall strategic benchmark score", _make_overall_bar(selected_companies), PLOT_EXPLANATIONS["overall_score"], "ci_overall_scores.csv"), md=6),
         ], className="chart-row"),
         dbc.Row([
-            dbc.Col(dbc.Card([
-                dbc.CardHeader("Weighted score detail for selected axis"),
-                dbc.CardBody([
-                    data_note("ci_weighted_score_details.csv"),
-                    html.Div(id="cs-score-detail-table"),
-                ]),
-            ]), md=12),
-        ], className="chart-row"),
-        dbc.Row([
-            dbc.Col(dbc.Card([
-                dbc.CardHeader("Evidence records behind selected axis"),
-                dbc.CardBody([
-                    data_note("ci_extracted_indicators_long.csv"),
-                    html.Div(id="cs-evidence-table"),
-                ]),
-            ]), md=12),
-        ], className="chart-row"),
-        dbc.Row([
-            dbc.Col(dbc.Card([
-                dbc.CardHeader("Coverage and confidence"),
-                dbc.CardBody([
-                    data_note("ci_axis_coverage_summary.csv"),
-                    html.Div(id="cs-coverage-table"),
-                ]),
-            ]), md=7),
-            dbc.Col(dbc.Card([
-                dbc.CardHeader("Data gaps and warnings"),
-                dbc.CardBody(html.Div(id="cs-gap-cards")),
-            ]), md=5),
+            dbc.Col(dbc.Card([dbc.CardHeader("Data gaps and comparability warnings"), dbc.CardBody([html.P("These warnings are analytically important. They explain why some peer data is not as comparable as Nordzucker, Südzucker or Tereos annual-report data."), compact_table(gaps, ["company_name", "gap", "impact"], page_size=6)])]), md=6),
+            dbc.Col(dbc.Card([dbc.CardHeader("Recommended plot design by analysis page"), dbc.CardBody([data_note("ci_analysis_plot_catalog.csv"), compact_table(plot_catalog, ["tab", "plot", "why_it_matters", "data_files"], page_size=7)])]), md=6),
         ], className="chart-row"),
     ])
 
 
-@callback(
-    Output("cs-weight-collapse", "is_open"),
-    Input("cs-toggle-weights", "n_clicks"),
-    State("cs-weight-collapse", "is_open"),
-)
-def toggle_weight_table(n_clicks, is_open):
-    if n_clicks:
-        return not is_open
-    return is_open
+def _finance_content(selected_companies):
+    return html.Div([
+        html.H3("Finance: profitability trend and sugar-segment comparability", className="section-title"),
+        html.P(PAGE_EXPLANATIONS["finance"], className="page-lead compact-lead"),
+        dbc.Row([
+            dbc.Col(_plot_card("Operating margin trend", _make_finance_margin_trend(selected_companies), PLOT_EXPLANATIONS["finance_margin"], "ci_financial_timeseries.csv"), md=7),
+            dbc.Col(_plot_card("Revenue trend indexed to first available year", _make_revenue_index_trend(selected_companies), PLOT_EXPLANATIONS["revenue_index"], "ci_financial_timeseries.csv"), md=5),
+        ], className="chart-row"),
+        dbc.Row([
+            dbc.Col(_plot_card("Sugar-related segment margin trend", _make_segment_margin_trend(selected_companies), PLOT_EXPLANATIONS["segment_margin"], "ci_segment_financial_timeseries.csv"), md=12),
+        ], className="chart-row"),
+        dbc.Row([
+            dbc.Col(dbc.Card([dbc.CardHeader("Extracted finance data"), dbc.CardBody([data_note("ci_financial_timeseries.csv"), compact_table(financials[financials["company_id"].isin(_safe_companies(selected_companies))], ["company_name", "role", "fiscal_year", "basis", "revenue_m", "ebitda_m", "operating_result_m", "operating_margin_pct", "net_debt_m", "capex_m", "currency", "source_link"], page_size=10)])]), md=12),
+        ], className="chart-row"),
+    ])
 
 
-@callback(
-    Output("cs-kpis", "children"),
-    Output("cs-radar", "figure"),
-    Output("cs-axis-bar", "figure"),
-    Output("cs-score-matrix", "figure"),
-    Output("cs-score-detail-table", "children"),
-    Output("cs-evidence-table", "children"),
-    Output("cs-coverage-table", "children"),
-    Output("cs-gap-cards", "children"),
-    Input("cs-companies", "value"),
-    Input("cs-axis", "value"),
-)
-def update_scorecard(selected_companies, selected_axis):
-    selected_axis = selected_axis or "finance"
+def _risk_content(selected_companies):
+    return html.Div([
+        html.H3("Risk: market pressure and profitability drawdown", className="section-title"),
+        html.P(PAGE_EXPLANATIONS["risk"], className="page-lead compact-lead"),
+        dbc.Row([
+            dbc.Col(_plot_card("EU white sugar price trend", _make_market_price_trend(), PLOT_EXPLANATIONS["market_price"], "ci_market_price_timeseries.csv"), md=6),
+            dbc.Col(_plot_card("Profitability drawdown from recent peak", _make_profitability_drawdown(selected_companies), PLOT_EXPLANATIONS["drawdown"], "ci_segment_financial_timeseries.csv"), md=6),
+        ], className="chart-row"),
+        dbc.Row([
+            dbc.Col(dbc.Card([dbc.CardHeader("Risk evidence records"), dbc.CardBody([html.P("Risk evidence combines market prices, segment losses, restructuring events and regulatory pressure. It should be interpreted together with the finance tab, not as a standalone risk score."), compact_table(indicators[indicators["axis"].isin(["risk", "finance", "regulation"])], ["company_name", "axis", "metric_name", "period", "value_numeric", "unit", "source_link", "evidence_text"], page_size=10)])]), md=12),
+        ], className="chart-row"),
+    ])
+
+
+def _sustainability_content(selected_companies):
+    return html.Div([
+        html.H3("Sustainability: target ambition versus operational evidence", className="section-title"),
+        html.P(PAGE_EXPLANATIONS["sustainability"], className="page-lead compact-lead"),
+        dbc.Row([
+            dbc.Col(_plot_card("Climate target comparison", _make_sustainability_targets(selected_companies), PLOT_EXPLANATIONS["climate_targets"], "ci_sustainability_targets.csv"), md=7),
+            dbc.Col(_plot_card("Operational emissions trend", _make_emissions_trend(selected_companies), PLOT_EXPLANATIONS["emissions"], "ci_emissions_timeseries.csv"), md=5),
+        ], className="chart-row"),
+        dbc.Row([
+            dbc.Col(dbc.Card([dbc.CardHeader("Sustainability target table"), dbc.CardBody([data_note("ci_sustainability_targets.csv"), compact_table(sustainability[sustainability["company_id"].isin(_safe_companies(selected_companies))], ["company_name", "metric", "value_numeric", "unit", "base_year", "target_year", "scope", "source_link", "evidence_note"], page_size=10)])]), md=12),
+        ], className="chart-row"),
+    ])
+
+
+def _operations_content(selected_companies):
+    return html.Div([
+        html.H3("Operations: footprint, scale and raw-material exposure", className="section-title"),
+        html.P(PAGE_EXPLANATIONS["operations"], className="page-lead compact-lead"),
+        dbc.Row([
+            dbc.Col(_plot_card("Operational footprint: countries versus plants", _make_footprint_scatter(selected_companies), PLOT_EXPLANATIONS["footprint"], "ci_operations_profile.csv"), md=7),
+            dbc.Col(_plot_card("Visible sugar production mix", _make_production_mix(selected_companies), PLOT_EXPLANATIONS["production_mix"], "ci_operations_profile.csv"), md=5),
+        ], className="chart-row"),
+        dbc.Row([
+            dbc.Col(dbc.Card([dbc.CardHeader("Operational profile table"), dbc.CardBody([data_note("ci_operations_profile.csv"), compact_table(operations[operations["company_id"].isin(_safe_companies(selected_companies))], ["company_name", "role", "scope", "countries", "plants", "employees", "sugar_production_m_tonnes", "raw_materials", "production_notes", "source_link"], page_size=8)])]), md=12),
+        ], className="chart-row"),
+    ])
+
+
+def _products_content(selected_companies):
+    return html.Div([
+        html.H3("Products: diversification beyond standard sugar", className="section-title"),
+        html.P(PAGE_EXPLANATIONS["products"], className="page-lead compact-lead"),
+        dbc.Row([
+            dbc.Col(_plot_card("Product and co-product portfolio heatmap", _make_product_heatmap(selected_companies), PLOT_EXPLANATIONS["product_heatmap"], "ci_product_portfolio_matrix.csv"), md=8),
+            dbc.Col(_plot_card("Product breadth indicator", _make_product_breadth(selected_companies), PLOT_EXPLANATIONS["product_breadth"], "ci_product_portfolio_matrix.csv"), md=4),
+        ], className="chart-row"),
+        dbc.Row([
+            dbc.Col(dbc.Card([dbc.CardHeader("Product category evidence"), dbc.CardBody([data_note("ci_product_portfolio_matrix.csv"), compact_table(products[products["company_id"].isin(_safe_companies(selected_companies))], ["company_name", "product_category", "presence", "evidence_strength", "source_link"], page_size=12)])]), md=12),
+        ], className="chart-row"),
+    ])
+
+
+def _regulation_content(selected_companies):
+    return html.Div([
+        html.H3("Regulation: reporting readiness and policy exposure", className="section-title"),
+        html.P(PAGE_EXPLANATIONS["regulation"], className="page-lead compact-lead"),
+        dbc.Row([
+            dbc.Col(_plot_card("Reporting and policy readiness score", _make_reg_readiness(selected_companies), PLOT_EXPLANATIONS["reg_readiness"], "ci_regulation_context.csv"), md=5),
+            dbc.Col(_plot_card("EU market policy context: sugar price pressure", _make_market_price_trend(), PLOT_EXPLANATIONS["reg_market"], "ci_market_price_timeseries.csv"), md=7),
+        ], className="chart-row"),
+        dbc.Row([
+            dbc.Col(dbc.Card([dbc.CardHeader("Regulatory context table"), dbc.CardBody([data_note("ci_regulation_context.csv"), compact_table(regulation, ["company_name", "topic", "status_score", "interpretation", "source_link"], page_size=8)])]), md=12),
+        ], className="chart-row"),
+    ])
+
+
+def _investment_content(selected_companies):
+    return html.Div([
+        html.H3("Investment: capex, restructuring and decarbonisation projects", className="section-title"),
+        html.P(PAGE_EXPLANATIONS["investment"], className="page-lead compact-lead"),
+        dbc.Row([
+            dbc.Col(_plot_card("Capex trend", _make_capex_trend(selected_companies), PLOT_EXPLANATIONS["capex"], "ci_financial_timeseries.csv"), md=7),
+            dbc.Col(_plot_card("Latest investment intensity versus margin", _make_investment_intensity(selected_companies), PLOT_EXPLANATIONS["investment_intensity"], "ci_financial_timeseries.csv"), md=5),
+        ], className="chart-row"),
+        dbc.Row([
+            dbc.Col(dbc.Card([dbc.CardHeader("Investment and restructuring events"), dbc.CardBody([data_note("ci_investment_events.csv"), compact_table(investments[investments["company_id"].isin(_safe_companies(selected_companies))], ["company_name", "year", "event_type", "amount_m", "currency", "theme", "description", "source_link"], page_size=8)])]), md=12),
+        ], className="chart-row"),
+    ])
+
+
+CONTENT_DISPATCH = {
+    "overview": _overview_content,
+    "finance": _finance_content,
+    "risk": _risk_content,
+    "sustainability": _sustainability_content,
+    "operations": _operations_content,
+    "products": _products_content,
+    "regulation": _regulation_content,
+    "investment": _investment_content,
+}
+
+
+def _dashboard_view():
+    return html.Div([
+        dbc.Row([
+            dbc.Col(dbc.Card(dbc.CardBody([
+                html.Label("Companies shown"),
+                dcc.Dropdown(id="dash-companies", options=COMPANY_OPTIONS, value=DEFAULT_COMPANIES, multi=True, clearable=False),
+            ])), md=8),
+            dbc.Col(dbc.Card(dbc.CardBody([
+                html.Label("Data basis"),
+                html.Div("Expanded documents folder + official web supplements", className="kpi-value-small"),
+                html.Div("Nordzucker is focal company; others are peer competitors", className="kpi-sub"),
+            ])), md=4),
+        ], className="control-row"),
+        dcc.Tabs(id="dashboard-tabs", value="overview", children=[dcc.Tab(label=t["label"], value=t["value"]) for t in DASHBOARD_TABS], className="analysis-tabs"),
+        html.Div(id="dashboard-tab-content", className="tab-content-spacious"),
+    ])
+
+
+def _example_question_list():
+    items = []
+    for q in queries:
+        for ex in q.get("example_questions", []):
+            items.append(html.Li(ex, className="example-question-item"))
+    return html.Ul(items, className="example-question-list")
+
+
+def _interactive_view():
+    return html.Div([
+        dbc.Alert([
+            html.Strong("Prototype limitation: "),
+            "In this prototype, the input field is free text, but answers are generated only when the question exactly matches one of the predefined example questions below. Other questions intentionally do not return an answer because no live LLM API or open-ended retrieval is implemented."
+        ], color="warning", className="mb-3"),
+        dbc.Row([
+            dbc.Col(dbc.Card([dbc.CardHeader("Ask a competitive-intelligence question"), dbc.CardBody([
+                dbc.Label("Your question"),
+                dcc.Textarea(
+                    id="ciia-question",
+                    value="",
+                    placeholder="Type or paste one of the example questions here...",
+                    className="question-input",
+                    style={"height": "96px"},
+                ),
+                dbc.Button("Ask", id="ciia-ask", color="primary", className="mt-2"),
+                html.Div("The input is intentionally free-form to demonstrate the intended interaction pattern. In the prototype, however, only the listed examples are connected to prewritten, evidence-backed answers.", className="data-note mt-2"),
+                html.Hr(),
+                html.Div("Example questions supported in this prototype", className="section-label"),
+                _example_question_list(),
+            ])]), md=5),
+            dbc.Col(dbc.Card([dbc.CardHeader("Generated answer summary"), dbc.CardBody(html.Div(id="ciia-answer", children=[
+                html.Div("No question has been submitted yet. Paste or type one of the supported example questions and click Ask.", className="data-note")
+            ]))]), md=7),
+        ], className="chart-row"),
+        dbc.Row([
+            dbc.Col(dbc.Card([dbc.CardHeader("Related plot"), dbc.CardBody([dcc.Graph(id="ciia-plot"), html.Div(id="ciia-plot-explanation", className="plot-explanation")])]), md=7),
+            dbc.Col(dbc.Card([dbc.CardHeader("Retrieved evidence records"), dbc.CardBody([data_note("ci_extracted_indicators_long.csv filtered by intent"), html.Div(id="ciia-evidence")])]), md=5),
+        ], className="chart-row"),
+        dbc.Row([dbc.Col(dbc.Card([dbc.CardHeader("Validation explanation"), dbc.CardBody(html.Div(id="ciia-validation"))]), md=12)], className="chart-row"),
+    ])
+
+def layout():
+    return html.Div([
+        dbc.Row([
+            dbc.Col([
+                html.Div("Analysis mode", className="section-label mb-1"),
+                dbc.RadioItems(id="analysis-mode-toggle", options=[{"label": "Dashboard", "value": "dashboard"}, {"label": "Interactive Mode", "value": "interactive"}], value="dashboard", className="btn-group analysis-mode-toggle", inputClassName="btn-check", labelClassName="btn btn-outline-primary", labelCheckedClassName="active"),
+            ], md=5),
+            dbc.Col([
+                html.H2("Data Analysis View", className="page-title mb-1"),
+                html.P("Evidence-backed competitive intelligence for Nordzucker as focal company and selected sugar-industry peer competitors.", className="page-lead mb-0"),
+            ], md=7),
+        ], className="analysis-header-row"),
+        html.Div(_dashboard_view(), id="dashboard-view-container"),
+        html.Div(_interactive_view(), id="interactive-view-container", style={"display": "none"}),
+    ])
+
+
+@callback(Output("dashboard-view-container", "style"), Output("interactive-view-container", "style"), Input("analysis-mode-toggle", "value"))
+def switch_analysis_mode(mode):
+    if mode == "interactive":
+        return {"display": "none"}, {"display": "block"}
+    return {"display": "block"}, {"display": "none"}
+
+
+@callback(Output("dashboard-tab-content", "children"), Input("dash-companies", "value"), Input("dashboard-tabs", "value"))
+def update_dashboard_tab(selected_companies, active_tab):
     selected_companies = _safe_companies(selected_companies)
-    return (
-        _kpi_cards(selected_companies),
-        _make_radar(selected_companies),
-        _make_axis_bar(selected_companies, selected_axis),
-        _make_score_matrix(selected_companies),
-        _score_detail_table(selected_companies, selected_axis),
-        _evidence_table(selected_companies, selected_axis),
-        _coverage_table(selected_companies),
-        _gap_cards(selected_companies),
-    )
+    active_tab = active_tab or "overview"
+    return CONTENT_DISPATCH.get(active_tab, _overview_content)(selected_companies)
+
+
+def _match_exact_example(user_query):
+    q = (user_query or "").strip().lower()
+    if not q:
+        return None
+    for item in queries:
+        for ex in item.get("example_questions", []):
+            if q == ex.strip().lower():
+                return item
+    return None
+
+
+def _unsupported_question_response(question):
+    message = html.Div([
+        dbc.Alert([
+            html.Strong("No prototype answer generated. "),
+            "This question does not exactly match one of the supported example questions. In the production concept, this would be handled by retrieval plus an LLM answer chain; in this front-end prototype, open-ended questions are deliberately disabled."
+        ], color="secondary"),
+        html.Div("Supported examples are listed on the left. Please copy one of them exactly to see the predefined answer, plot and evidence records.", className="data-note"),
+    ])
+    validation = html.Div([
+        html.P("The prototype avoids pretending to answer unsupported free-text questions. This makes the limitation explicit: the UI demonstrates the interaction concept, while only selected examples are connected to prepared analysis outputs."),
+        html.Ul([
+            html.Li("Free text input is available to show the intended user interface."),
+            html.Li("Only exact example questions trigger a response."),
+            html.Li("No live LLM API, vector search or dynamic answer generation is used in this prototype."),
+        ]),
+    ])
+    return message, _empty_fig("Prototype answers only predefined example questions"), dcc.Markdown("No related plot is produced for unsupported questions in this prototype.", className="plot-explanation"), html.Div("No evidence records retrieved."), validation
+
+
+def _interactive_figure(intent):
+    chart = intent.get("chart", "finance_margin_trend")
+    companies = intent.get("companies") or DEFAULT_COMPANIES
+    if chart == "abf_margin_trend":
+        return _make_segment_margin_trend(companies), PLOT_EXPLANATIONS["segment_margin"]
+    if chart == "finance_margin_trend":
+        return _make_finance_margin_trend(companies), PLOT_EXPLANATIONS["finance_margin"]
+    if chart == "market_price_trend":
+        return _make_market_price_trend(), PLOT_EXPLANATIONS["market_price"]
+    if chart == "sustainability_targets":
+        return _make_sustainability_targets(companies), PLOT_EXPLANATIONS["climate_targets"]
+    if chart == "product_heatmap":
+        return _make_product_heatmap(companies), PLOT_EXPLANATIONS["product_heatmap"]
+    return _make_finance_margin_trend(companies), "The related plot is generated from the precomputed dashboard CSVs. Read the axis labels and hover data for the exact indicators used; this fallback is shown only when the predefined example does not specify a more specialised plot explanation."
+
+
+@callback(Output("ciia-answer", "children"), Output("ciia-plot", "figure"), Output("ciia-plot-explanation", "children"), Output("ciia-evidence", "children"), Output("ciia-validation", "children"), Input("ciia-ask", "n_clicks"), State("ciia-question", "value"))
+def update_interactive_answer(n_clicks, question):
+    if not n_clicks:
+        return (
+            html.Div("No question has been submitted yet. Paste or type one of the supported example questions and click Ask.", className="data-note"),
+            _empty_fig("No question submitted"),
+            dcc.Markdown("The related plot will appear here after a supported example question is submitted.", className="plot-explanation"),
+            html.Div("No evidence records retrieved yet."),
+            html.Div("Prototype note: only predefined example questions are connected to prepared answer outputs."),
+        )
+    intent = _match_exact_example(question)
+    if intent is None:
+        return _unsupported_question_response(question)
+    axes = intent.get("evidence_axes") or AXIS_ORDER
+    companies = intent.get("companies") or DEFAULT_COMPANIES
+    evidence_df = indicators[indicators["company_id"].isin(companies) & indicators["axis"].isin(axes)].copy() if not indicators.empty else pd.DataFrame()
+    fig, plot_explanation = _interactive_figure(intent)
+    answer = html.Div([
+        html.H4(intent.get("answer_title", "Competitive-intelligence answer")),
+        html.P(intent.get("answer_summary", "")),
+        html.Div([html.Span("Retrieved score axes: ", className="data-note-label"), html.Span(", ".join([AXIS_LABELS.get(a, a) for a in axes]))], className="answer-fact-box"),
+        html.Div([html.Span("Evidence records used: ", className="data-note-label"), html.Span(str(len(evidence_df)))], className="answer-fact-box"),
+    ])
+    validation = html.Div([
+        html.P(intent.get("validation_note", "The answer is generated from predefined app text and scorecard tables.")),
+        html.Ul([
+            html.Li("Nordzucker is handled as the focal company, not as a competitor."),
+            html.Li("The displayed plot is computed from extracted CSV tables in the data folder."),
+            html.Li("The prose is intentionally prewritten to simulate an LLM answer without requiring a live LLM API."),
+        ]),
+    ])
+    cols = ["record_id", "company_name", "axis", "metric_name", "period", "value_numeric", "value_text", "unit", "source_link", "confidence", "evidence_text"]
+    return answer, fig, dcc.Markdown(plot_explanation, className="plot-explanation"), compact_table(evidence_df, cols, page_size=8), validation

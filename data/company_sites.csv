@@ -5,8 +5,8 @@ SITE_003,NORDZUCKER,Nordzucker,Nordstemmen Plant,Nordstemmen,Germany,DEU,52.1611
 SITE_004,SUEDZUCKER,Südzucker,Offstein Site,Offstein,Germany,DEU,49.6064,8.2387,production_site,sugar and special products,large,official_report,Südzucker annual report,True
 SITE_005,SUEDZUCKER,Südzucker,Ochsenfurt Plant,Ochsenfurt,Germany,DEU,49.6643,10.0623,sugar_factory,beet sugar,large,official_report,Südzucker site list,True
 SITE_006,PFEIFER_LANGEN,Pfeifer & Langen,Euskirchen Plant,Euskirchen,Germany,DEU,50.6606,6.7872,sugar_factory,sugar,large,official_website,Pfeifer & Langen location page,True
-SITE_007,PFEIFER_LANGEN,Pfeifer & Langen,Środa Wielkopolska Plant,Środa Wielkopolska,Poland,POL,52.229,17.276,sugar_factory,beet sugar,medium,official_report,Pfeifer & Langen Polish locations,False
-SITE_008,TEREOS,Tereos,Lille Area Site,Lille,France,FRA,50.6292,3.0573,sugar_factory,sugar,medium,official_website,Tereos location page,False
-SITE_009,CRISTAL_UNION,Cristal Union,Reims Area Site,Reims,France,FRA,49.2583,4.0317,sugar_factory,beet sugar,medium,official_website,Cristal Union location page,False
+SITE_007,PFEIFER_LANGEN,Pfeifer & Langen,Środa Wielkopolska Plant,Środa Wielkopolska,Poland,POL,52.229,17.276,sugar_factory,beet sugar,medium,official_report,Pfeifer & Langen Polish locations,True
+SITE_008,TEREOS,Tereos,Lille Area Site,Lille,France,FRA,50.6292,3.0573,sugar_factory,sugar,medium,official_website,Tereos location page,True
+SITE_009,CRISTAL_UNION,Cristal Union,Reims Area Site,Reims,France,FRA,49.2583,4.0317,sugar_factory,beet sugar,medium,official_website,Cristal Union location page,True
 SITE_010,ABF_SUGAR,ABF Sugar,Wissington Factory,Wissington,United Kingdom,GBR,52.553,0.512,sugar_factory,beet sugar,large,official_website,ABF Sugar site page,True
-SITE_011,ABF_SUGAR,ABF Sugar,Guadalete Area Site,Jerez de la Frontera,Spain,ESP,36.685,-6.1261,sugar_factory,beet sugar / cane sugar,medium,official_website,ABF Sugar Spain site page,False
+SITE_011,ABF_SUGAR,ABF Sugar,Guadalete Area Site,Jerez de la Frontera,Spain,ESP,36.685,-6.1261,sugar_factory,beet sugar / cane sugar,medium,official_website,ABF Sugar Spain site page,True

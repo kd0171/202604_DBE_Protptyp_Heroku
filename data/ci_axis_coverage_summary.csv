@@ -1,36 +1,38 @@
-company_id,company_name,axis,records_total,quantitative_records,qualitative_records,avg_confidence,coverage_status,notes
-NORDZUCKER,Nordzucker AG,finance,2,2,0,0.95,usable_quantitative,At least one quantitative evidence point available.
-NORDZUCKER,Nordzucker AG,risk,1,0,1,0.88,qualitative_only,"Qualitative evidence available, numeric scoring needs judgement."
-NORDZUCKER,Nordzucker AG,sustainability,7,7,0,0.89,usable_quantitative,At least one quantitative evidence point available.
-NORDZUCKER,Nordzucker AG,operations,4,4,0,0.91,usable_quantitative,At least one quantitative evidence point available.
-NORDZUCKER,Nordzucker AG,products,1,0,1,0.85,qualitative_only,"Qualitative evidence available, numeric scoring needs judgement."
-NORDZUCKER,Nordzucker AG,regulation,1,0,1,0.8,qualitative_only,"Qualitative evidence available, numeric scoring needs judgement."
-NORDZUCKER,Nordzucker AG,investment,3,2,1,0.88,strong,Both quantitative and qualitative evidence available.
-SUEDZUCKER,Südzucker AG,finance,6,6,0,0.96,usable_quantitative,Very strong; group and sugar-segment KPIs available. Use Sugar segment for direct comparison with Nordzucker.
-SUEDZUCKER,Südzucker AG,risk,1,0,1,0.88,qualitative_only,"Qualitative evidence available, numeric scoring needs judgement."
-SUEDZUCKER,Südzucker AG,sustainability,5,3,2,0.87,strong,Both quantitative and qualitative evidence available.
-SUEDZUCKER,Südzucker AG,operations,2,2,0,0.95,usable_quantitative,At least one quantitative evidence point available.
-SUEDZUCKER,Südzucker AG,products,1,0,1,0.87,qualitative_only,"Qualitative evidence available, numeric scoring needs judgement."
-SUEDZUCKER,Südzucker AG,regulation,1,0,1,0.82,qualitative_only,"Qualitative evidence available, numeric scoring needs judgement."
-SUEDZUCKER,Südzucker AG,investment,1,1,0,0.95,usable_quantitative,At least one quantitative evidence point available.
-PFEIFER_LANGEN,Pfeifer & Langen,finance,2,2,0,0.82,usable_quantitative,"Revenue is available, but no EBIT/EBITDA/net debt in uploaded official docs; use Bundesanzeiger/Unternehmensregister later or mark low comparability."
-PFEIFER_LANGEN,Pfeifer & Langen,risk,1,0,1,0.9,qualitative_only,"Qualitative evidence available, numeric scoring needs judgement."
-PFEIFER_LANGEN,Pfeifer & Langen,sustainability,5,4,1,0.84,strong,Both quantitative and qualitative evidence available.
-PFEIFER_LANGEN,Pfeifer & Langen,operations,4,4,0,0.88,usable_quantitative,At least one quantitative evidence point available.
-PFEIFER_LANGEN,Pfeifer & Langen,products,1,0,1,0.8,qualitative_only,"Qualitative evidence available, numeric scoring needs judgement."
-PFEIFER_LANGEN,Pfeifer & Langen,regulation,1,0,1,0.78,qualitative_only,"Qualitative evidence available, numeric scoring needs judgement."
-PFEIFER_LANGEN,Pfeifer & Langen,investment,2,1,1,0.84,usable_quantitative,At least one quantitative evidence point available.
-TEREOS,Tereos,finance,9,9,0,0.95,usable_quantitative,At least one quantitative evidence point available.
-TEREOS,Tereos,risk,1,0,1,0.88,qualitative_only,"Qualitative evidence available, numeric scoring needs judgement."
-TEREOS,Tereos,sustainability,2,1,1,0.86,usable_quantitative,At least one quantitative evidence point available.
-TEREOS,Tereos,operations,3,3,0,0.89,usable_quantitative,"Strong, but 2025/26 release says 12 countries / 14,300 employees while 2024/25 report says 14 countries / 15,600 employees; keep period-specific values."
-TEREOS,Tereos,products,2,1,1,0.89,usable_quantitative,At least one quantitative evidence point available.
-TEREOS,Tereos,regulation,1,1,0,0.8,usable_quantitative,At least one quantitative evidence point available.
-TEREOS,Tereos,investment,1,0,1,0.84,qualitative_only,"Qualitative evidence available, numeric scoring needs judgement."
-ABF_SUGAR,ABF Sugar,finance,2,2,0,0.92,usable_quantitative,At least one quantitative evidence point available. ABF rows are web-supplemented because ABF PDF was not in documents folder.
-ABF_SUGAR,ABF Sugar,risk,1,0,1,0.86,qualitative_only,"Qualitative evidence available, numeric scoring needs judgement. ABF rows are web-supplemented because ABF PDF was not in documents folder."
-ABF_SUGAR,ABF Sugar,sustainability,3,2,1,0.9,strong,Both quantitative and qualitative evidence available. ABF rows are web-supplemented because ABF PDF was not in documents folder.
-ABF_SUGAR,ABF Sugar,operations,4,4,0,0.88,usable_quantitative,At least one quantitative evidence point available. ABF rows are web-supplemented because ABF PDF was not in documents folder.
-ABF_SUGAR,ABF Sugar,products,1,0,1,0.86,qualitative_only,"Qualitative evidence available, numeric scoring needs judgement. ABF rows are web-supplemented because ABF PDF was not in documents folder."
-ABF_SUGAR,ABF Sugar,regulation,0,0,0,,missing,No extracted records yet. ABF rows are web-supplemented because ABF PDF was not in documents folder.
-ABF_SUGAR,ABF Sugar,investment,0,0,0,,missing,No extracted records yet. ABF rows are web-supplemented because ABF PDF was not in documents folder.
+company_id,company_name,role,axis,records_total,quantitative_records,qualitative_records,avg_confidence,coverage_status,notes,source_link_count
+NORDZUCKER,Nordzucker AG,focal_company,finance,14,14,0,0.91,strong,Combined earlier scorecard indicators with expanded document re-extraction.,0
+NORDZUCKER,Nordzucker AG,focal_company,risk,1,0,1,0.88,limited,Combined earlier scorecard indicators with expanded document re-extraction.,0
+NORDZUCKER,Nordzucker AG,focal_company,sustainability,10,10,0,0.9,strong,Combined earlier scorecard indicators with expanded document re-extraction.,0
+NORDZUCKER,Nordzucker AG,focal_company,operations,6,6,0,0.91,good,Combined earlier scorecard indicators with expanded document re-extraction.,0
+NORDZUCKER,Nordzucker AG,focal_company,products,1,0,1,0.85,limited,Combined earlier scorecard indicators with expanded document re-extraction.,0
+NORDZUCKER,Nordzucker AG,focal_company,regulation,1,0,1,0.8,limited,Combined earlier scorecard indicators with expanded document re-extraction.,0
+NORDZUCKER,Nordzucker AG,focal_company,investment,9,8,1,0.89,strong,Combined earlier scorecard indicators with expanded document re-extraction.,0
+SUEDZUCKER,Südzucker AG,peer_competitor,finance,18,18,0,0.92,strong,Combined earlier scorecard indicators with expanded document re-extraction.,0
+SUEDZUCKER,Südzucker AG,peer_competitor,risk,1,0,1,0.88,limited,Combined earlier scorecard indicators with expanded document re-extraction.,0
+SUEDZUCKER,Südzucker AG,peer_competitor,sustainability,6,4,2,0.88,good,Combined earlier scorecard indicators with expanded document re-extraction.,0
+SUEDZUCKER,Südzucker AG,peer_competitor,operations,4,4,0,0.92,good,Combined earlier scorecard indicators with expanded document re-extraction.,0
+SUEDZUCKER,Südzucker AG,peer_competitor,products,1,0,1,0.87,limited,Combined earlier scorecard indicators with expanded document re-extraction.,0
+SUEDZUCKER,Südzucker AG,peer_competitor,regulation,1,0,1,0.82,limited,Combined earlier scorecard indicators with expanded document re-extraction.,0
+SUEDZUCKER,Südzucker AG,peer_competitor,investment,7,7,0,0.91,good,Combined earlier scorecard indicators with expanded document re-extraction.,0
+PFEIFER_LANGEN,Pfeifer & Langen,peer_competitor,finance,4,4,0,0.86,good,Combined earlier scorecard indicators with expanded document re-extraction.,0
+PFEIFER_LANGEN,Pfeifer & Langen,peer_competitor,risk,1,0,1,0.9,limited,Combined earlier scorecard indicators with expanded document re-extraction.,0
+PFEIFER_LANGEN,Pfeifer & Langen,peer_competitor,sustainability,7,6,1,0.86,good,Combined earlier scorecard indicators with expanded document re-extraction.,0
+PFEIFER_LANGEN,Pfeifer & Langen,peer_competitor,operations,6,6,0,0.89,good,Combined earlier scorecard indicators with expanded document re-extraction.,0
+PFEIFER_LANGEN,Pfeifer & Langen,peer_competitor,products,1,0,1,0.8,limited,Combined earlier scorecard indicators with expanded document re-extraction.,0
+PFEIFER_LANGEN,Pfeifer & Langen,peer_competitor,regulation,1,0,1,0.78,limited,Combined earlier scorecard indicators with expanded document re-extraction.,0
+PFEIFER_LANGEN,Pfeifer & Langen,peer_competitor,investment,2,1,1,0.84,limited,Combined earlier scorecard indicators with expanded document re-extraction.,0
+TEREOS,Tereos,peer_competitor,finance,21,21,0,0.92,strong,Combined earlier scorecard indicators with expanded document re-extraction.,0
+TEREOS,Tereos,peer_competitor,risk,1,0,1,0.88,limited,Combined earlier scorecard indicators with expanded document re-extraction.,0
+TEREOS,Tereos,peer_competitor,sustainability,3,2,1,0.87,limited,Combined earlier scorecard indicators with expanded document re-extraction.,0
+TEREOS,Tereos,peer_competitor,operations,5,5,0,0.9,good,Combined earlier scorecard indicators with expanded document re-extraction.,0
+TEREOS,Tereos,peer_competitor,products,2,1,1,0.89,limited,Combined earlier scorecard indicators with expanded document re-extraction.,0
+TEREOS,Tereos,peer_competitor,regulation,1,1,0,0.8,limited,Combined earlier scorecard indicators with expanded document re-extraction.,0
+TEREOS,Tereos,peer_competitor,investment,1,0,1,0.84,limited,Combined earlier scorecard indicators with expanded document re-extraction.,0
+ABF_SUGAR,ABF Sugar,peer_competitor,finance,6,6,0,0.85,good,Combined earlier scorecard indicators with expanded document re-extraction.,10
+ABF_SUGAR,ABF Sugar,peer_competitor,risk,1,0,1,0.86,limited,Combined earlier scorecard indicators with expanded document re-extraction.,7
+ABF_SUGAR,ABF Sugar,peer_competitor,sustainability,5,4,1,0.87,good,Combined earlier scorecard indicators with expanded document re-extraction.,1
+ABF_SUGAR,ABF Sugar,peer_competitor,operations,6,6,0,0.86,good,Combined earlier scorecard indicators with expanded document re-extraction.,3
+ABF_SUGAR,ABF Sugar,peer_competitor,products,1,0,1,0.86,limited,Combined earlier scorecard indicators with expanded document re-extraction.,1
+ABF_SUGAR,ABF Sugar,peer_competitor,regulation,0,0,0,,missing,Combined earlier scorecard indicators with expanded document re-extraction.,
+ABF_SUGAR,ABF Sugar,peer_competitor,investment,0,0,0,,missing,Combined earlier scorecard indicators with expanded document re-extraction.,2
+EU_MARKET,EU sugar market,,regulation,,,,,,,2
+EU_MARKET,EU sugar market,,risk,,,,,,,1

@@ -17,12 +17,7 @@ engineering_links = [
 ]
 
 analysis_links = [
-    ("Competitive Scorecard", "/analysis/competitive-scorecard"),
-    ("Market Overview", "/analysis/market-overview"),
-    ("Regional Analysis", "/analysis/regional-analysis"),
-    ("Event Analysis", "/analysis/event-analysis"),
-    ("Combined Interpretation", "/analysis/combined-interpretation"),
-    ("Interactive Mode", "/analysis/interactive-mode"),
+    ("Analysis Workspace", "/analysis/competitive-scorecard"),
 ]
 
 def make_links(items, pathname):

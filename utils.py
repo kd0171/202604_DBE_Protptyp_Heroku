@@ -44,6 +44,16 @@ def load_data():
         "ci_data_gaps": _read_optional_csv("ci_data_gaps_and_warnings.csv"),
         "ci_document_inventory": _read_optional_csv("ci_document_inventory.csv"),
         "ci_supplement_sources": _read_optional_csv("ci_official_site_supplement_sources.csv"),
+        "ci_financial_timeseries": _read_optional_csv("ci_financial_timeseries.csv"),
+        "ci_segment_financial_timeseries": _read_optional_csv("ci_segment_financial_timeseries.csv"),
+        "ci_operations_profile": _read_optional_csv("ci_operations_profile.csv"),
+        "ci_product_portfolio_matrix": _read_optional_csv("ci_product_portfolio_matrix.csv"),
+        "ci_sustainability_targets": _read_optional_csv("ci_sustainability_targets.csv"),
+        "ci_emissions_timeseries": _read_optional_csv("ci_emissions_timeseries.csv"),
+        "ci_market_price_timeseries": _read_optional_csv("ci_market_price_timeseries.csv"),
+        "ci_investment_events": _read_optional_csv("ci_investment_events.csv"),
+        "ci_regulation_context": _read_optional_csv("ci_regulation_context.csv"),
+        "ci_analysis_plot_catalog": _read_optional_csv("ci_analysis_plot_catalog.csv"),
     }
 
 def capacity_size(series):
@@ -68,7 +78,8 @@ def compact_table(df, columns=None, llm_columns=None, page_size=7, table_id=None
             })
     kwargs = dict(
         data=show.to_dict("records"),
-        columns=[{"name": c, "id": c, "editable": editable} for c in show.columns],
+        columns=[{"name": c, "id": c, "editable": editable, **({"presentation": "markdown"} if (str(c).endswith("_link") or str(c) in {"source_link", "source_url"}) else {})} for c in show.columns],
+        markdown_options={"link_target": "_blank"},
         page_size=page_size,
         sort_action="native",
         filter_action="native",

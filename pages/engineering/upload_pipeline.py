@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import json
 from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
 import dash
@@ -14,10 +15,13 @@ from utils import LLM_EVENT_COLUMNS, compact_table, data_note, load_data
 
 dash.register_page(__name__, path="/engineering/upload-pipeline", name="Upload & Pipeline")
 
-DEFAULT_FILE = "Nordzucker_Annual_Report_2025.pdf"
+DEFAULT_FILE = "abf-annual-report-2025.pdf.downloadasset.pdf"
+APP_ROOT = Path(__file__).resolve().parents[2]
+SAMPLE_PDF_PATH = APP_ROOT / "documents" / "04_abf-sugar" / DEFAULT_FILE
+ENGINEERING_SAMPLE_EVENTS_PATH = APP_ROOT / "data" / "engineering_sample_events.csv"
 
 data = load_data()
-events = data["events"].copy()
+events = pd.read_csv(ENGINEERING_SAMPLE_EVENTS_PATH) if ENGINEERING_SAMPLE_EVENTS_PATH.exists() else data["events"].copy()
 if "event_id" in events.columns:
     events = events[events["event_id"].astype(str).ne("event_id")]
 
@@ -29,7 +33,7 @@ EVENT_FIELDS = [
 
 FINAL_TABLE_COLUMNS = [
     "event_id", "company_name", "event_type", "country", "city", "site_name",
-    "product_category", "target_year", "status", "source_document_title",
+    "product_category", "target_year", "status", "source_document_title", "source_page", "source_link",
     "extraction_confidence", "validation_status", "human_verified", "review_comment",
 ]
 
@@ -348,6 +352,169 @@ JOBS = [
     },
 ]
 
+
+# Sample-document specific configuration used by the Engineering View.
+# The PoC demonstrates the flow with one concrete official peer document rather
+# than mixing several companies in the Human Review panel.
+SAMPLE_DOCUMENT_CONTEXT = {
+    "source_id": "SRC_ABF_AR_2025",
+    "document_id": "doc_abf_annual_report_2025",
+    "company_name": "ABF Sugar / Associated British Foods plc",
+    "document_title": "Associated British Foods Annual Report 2025",
+    "reporting_period": "52 weeks ended 13 September 2025",
+    "sample_pdf_path": "documents/04_abf-sugar/abf-annual-report-2025.pdf.downloadasset.pdf",
+    "why_this_pdf": "It contains finance, risk, operations, investment and sustainability signals that directly explain the ABF Sugar 2025 peer benchmark used in the dashboard.",
+}
+
+PROMPT_CHAINS = {
+    "metadata_extraction": [
+        {
+            "title": "Identify the source document",
+            "prompt": "Read the title page, contents page and first operating-business overview. Extract the legal issuer, report title, publication year, reporting period, language and whether the document is an annual report. Return valid JSON only.",
+            "input": "Filename, PDF metadata, pages 1-5 of ABF Annual Report 2025.",
+            "output": {"issuer": "Associated British Foods plc", "document_title": "Annual Report 2025", "publication_year": 2025, "reporting_period": "52 weeks ended 13 September 2025", "language": "en", "document_type": "annual_report"},
+            "saved": "document_metadata.source_identification",
+        },
+        {
+            "title": "Map the relevant business scope",
+            "prompt": "The dashboard is for Nordzucker competitive intelligence. From the annual report, identify which segment is relevant to sugar-industry peer analysis. Do not use Primark, Grocery, Ingredients or Agriculture unless needed as group context.",
+            "input": "Operating business overview and contents page.",
+            "output": {"relevant_segment": "Sugar", "segment_display_name": "ABF Sugar", "comparison_role": "peer competitor", "exclude_segments": ["Retail", "Grocery", "Ingredients", "Agriculture"]},
+            "saved": "document_metadata.business_scope",
+        },
+        {
+            "title": "Create extraction configuration",
+            "prompt": "Create an extraction configuration for dashboard-linked events. Prioritise finance shock, restructuring, closure, capacity expansion, product diversification, regulatory exposure and decarbonisation. Keep page references.",
+            "input": "Document metadata and dashboard analysis axes.",
+            "output": {"target_axes": ["finance", "risk", "operations", "investment", "sustainability", "products/regulation"], "max_demo_events": 5, "page_reference_required": True},
+            "saved": "ie_extraction_config.json",
+        },
+    ],
+    "select_passages": [
+        {
+            "title": "Find sugar-segment sections",
+            "prompt": "Select only passages that belong to ABF Sugar or explicitly explain ABF Sugar performance. Keep section title and page number. Ignore unrelated group segments unless the passage explains sugar-specific risk or investment.",
+            "input": "Cleaned text blocks from the parsed annual report.",
+            "output": {"selected_sections": ["Operating review – Sugar", "ESG at Sugar", "Board activities: acquisitions/disposals/projects"], "primary_pages": [34, 35, 36, 37, 38, 97]},
+            "saved": "ie_candidate_sections.jsonl",
+        },
+        {
+            "title": "Detect candidate event passages",
+            "prompt": "Within the selected sections, mark passages containing concrete business events: numeric financial deterioration, restructuring, plant closure, capacity expansion, named investment projects, emissions-reduction projects or regulatory causes.",
+            "input": "ABF Sugar sections around pages 34-38 and governance page 97.",
+            "output": {"candidate_passages": 12, "examples": ["Sugar revenue and operating loss", "Azucarera footprint reduction", "Vivergo closure", "Ubombo debottlenecking", "British Sugar decarbonisation projects"]},
+            "saved": "ie_candidate_passages.jsonl",
+        },
+        {
+            "title": "Rank passages for the prototype",
+            "prompt": "Rank candidate passages by strategic usefulness for Nordzucker. Keep a small representative set of roughly five records. Prefer passages that link to dashboard tabs and avoid creating a complete event database in this prototype.",
+            "input": "Candidate passages with page numbers and event keywords.",
+            "output": {"selected_for_demo": 5, "selection_reason": "Covers finance/risk shock, restructuring, regulation-linked closure, capacity expansion and decarbonisation."},
+            "saved": "selected_demo_passages.json",
+        },
+    ],
+    "extract_events_json": [
+        {
+            "title": "Extract draft event candidates",
+            "prompt": "For each selected passage, extract a draft event with company_name, event_type, country, site_name, product_category, target_year, status, quantitative values and evidence_text. Use only facts explicitly supported by the passage.",
+            "input": "Five selected ABF Sugar passages with page references.",
+            "output": {"draft_events": ["financial_performance_warning", "plant_network_restructuring", "bioethanol_plant_closure", "capacity_expansion_and_efficiency_investment", "decarbonisation_project"]},
+            "saved": "events_draft_raw.json",
+        },
+        {
+            "title": "Normalize schema and controlled vocabulary",
+            "prompt": "Normalize event_type, product_category, production_type, country and status to the project schema. Preserve original wording in evidence_text and do not overwrite uncertain city/site fields with hallucinated values.",
+            "input": "Draft event candidates and schema vocabulary.",
+            "output": {"normalized_records": 5, "fields_normalized": ["event_type", "country", "site_name", "product_category", "status"]},
+            "saved": "events_normalized.json",
+        },
+        {
+            "title": "Score confidence and flag review needs",
+            "prompt": "Assign extraction_confidence between 0 and 1. Lower confidence if a field is inferred rather than explicitly stated. Add review_comment explaining what the human analyst should check.",
+            "input": "Normalized event records and evidence snippets.",
+            "output": {"records_scored": 5, "confidence_range": "0.91–0.95", "requires_human_review": True},
+            "saved": "events_pending_human_review.json",
+        },
+    ],
+    "link_evidence": [
+        {
+            "title": "Attach page-level evidence",
+            "prompt": "For each event, attach the supporting annual-report page and the shortest evidence text that directly supports the record. Prefer exact source wording for numeric values and causal claims.",
+            "input": "Normalized event records and selected source passages.",
+            "output": {"linked_events": 5, "source_pages": [35, 36, 37], "missing_page_references": 0},
+            "saved": "event_evidence_links.json",
+        },
+        {
+            "title": "Check evidence sufficiency",
+            "prompt": "Classify the evidence for each event as direct, indirect or insufficient. Direct means the source text supports the event type and the main quantitative or causal claim.",
+            "input": "Event records with evidence_text and page links.",
+            "output": {"direct_evidence": 5, "indirect_evidence": 0, "insufficient_evidence": 0},
+            "saved": "evidence_quality_report.json",
+        },
+        {
+            "title": "Prepare Human Review payload",
+            "prompt": "Create the final review payload. Include only the five representative prototype events, the evidence text, source link, confidence and review comment. State that this is not an exhaustive extraction of all possible ABF events.",
+            "input": "Evidence-linked events and quality report.",
+            "output": {"human_review_records": 5, "extraction_scope": "representative prototype subset", "dashboard_linked": True},
+            "saved": "engineering_sample_events.csv",
+        },
+    ],
+}
+
+SAMPLE_JOB_UPDATES = {
+    "upload_pdf": {
+        "short": "Upload ABF Annual Report 2025",
+        "purpose": "Accept the selected sample PDF as the raw source document for the RAG and IE branches.",
+        "input": "ABF Annual Report 2025 PDF selected through Upload PDF or downloaded via the Sample PDF button.",
+        "output": {"document_id": "doc_abf_annual_report_2025", "file_name": DEFAULT_FILE, "source_type": "annual_report", "status": "uploaded"},
+        "saved": "document_registry / document_id=doc_abf_annual_report_2025",
+        "note": "The prototype uses this single official ABF PDF to avoid mixing events from several companies in the Human Review panel.",
+    },
+    "register_source": {
+        "output": {"source_id": "SRC_ABF_AR_2025", "document_id": "doc_abf_annual_report_2025", "source_owner": "ABF Sugar / Associated British Foods plc", "comparison_role": "peer competitor for Nordzucker", "human_selected": True},
+        "saved": "document_sources table / SRC_ABF_AR_2025",
+    },
+    "metadata_extraction": {
+        "prompt": "Prompt chain shown below. The chain first identifies the annual report, then narrows the relevant comparison scope to ABF Sugar, and finally creates the extraction configuration for dashboard-linked events.",
+        "output": {"company_name": "Associated British Foods plc", "relevant_peer_segment": "ABF Sugar", "document_title": "Annual Report 2025", "publication_year": 2025, "reporting_period": "52 weeks ended 13 September 2025", "document_type": "annual_report"},
+    },
+    "parse_pdf": {"output": {"pages_processed": 235, "layout_blocks": "simulated", "page_reference_mode": "annual-report page + PDF page + block_id"}},
+    "extract_clean_text": {"output": {"text_blocks": "simulated", "cleaned": True, "metadata_fields": ["document_id", "source_id", "page", "section", "segment", "year"]}},
+    "chunk_document": {"output": {"chunks_created": 162, "average_chunk_tokens": 420, "metadata_attached": True}},
+    "create_embeddings": {"output": {"vectors_created": 162, "embedding_model": "conceptual placeholder in frontend PoC", "dimension": "not executed"}},
+    "store_vector_db": {"output": {"collection": "official_company_documents", "upserted_vectors": 162, "retrieval_ready": True}},
+    "prepare_retrieval": {"output": {"rag_query_ready": True, "future_frontend": "Interactive Dashboard / Chatbot", "implemented_now": "static prototype answers only"}},
+    "select_passages": {
+        "prompt": "Prompt chain shown below. It identifies ABF Sugar sections, detects candidate event passages and ranks a small subset for the prototype.",
+        "output": {"candidate_passages": 12, "selected_demo_passages": 5, "pages_covered": [35, 36, 37], "event_keywords_detected": ["low European sugar prices", "restructuring", "closure", "debottlenecking", "decarbonisation"]},
+        "saved": "selected_demo_passages.json",
+    },
+    "extract_events_json": {
+        "prompt": "Prompt chain shown below. It extracts draft events, normalizes them to the project schema and assigns confidence plus review comments.",
+        "output": [
+            {"event_id": "ABF2025_EVT_001", "event_type": "financial_performance_warning", "source_page": "p. 35", "confidence": 0.94},
+            {"event_id": "ABF2025_EVT_002", "event_type": "plant_network_restructuring", "source_page": "p. 35", "confidence": 0.91},
+            {"event_id": "ABF2025_EVT_003", "event_type": "bioethanol_plant_closure", "source_page": "p. 35", "confidence": 0.95},
+            {"event_id": "ABF2025_EVT_004", "event_type": "capacity_expansion_and_efficiency_investment", "source_page": "p. 36", "confidence": 0.93},
+            {"event_id": "ABF2025_EVT_005", "event_type": "decarbonisation_project", "source_page": "p. 37", "confidence": 0.92},
+        ],
+        "saved": "events_pending_human_review.json",
+    },
+    "link_evidence": {
+        "prompt": "Prompt chain shown below. It attaches source page links, checks evidence sufficiency and prepares the Human Review payload.",
+        "output": {"events_with_evidence": 5, "missing_evidence": 0, "evidence_fields": ["source_page", "source_link", "source_text"]},
+        "saved": "engineering_sample_events.csv",
+    },
+    "schema_precheck": {"output": {"records_checked": 5, "machine_check_passed": 5, "requires_human_review": 5}},
+}
+
+for _job in JOBS:
+    if _job["key"] in PROMPT_CHAINS:
+        _job["prompt_chain"] = PROMPT_CHAINS[_job["key"]]
+    if _job["key"] in SAMPLE_JOB_UPDATES:
+        _job.update(SAMPLE_JOB_UPDATES[_job["key"]])
+
+
 PIPELINE_ORDER = [job["key"] for job in JOBS]
 HUMAN_GATE_KEY = "human_review"
 HUMAN_GATE_INDEX = PIPELINE_ORDER.index(HUMAN_GATE_KEY)
@@ -362,8 +529,8 @@ TUTORIAL_STEPS = [
     {
         "title": "2. Upload PDF",
         "media": "GIF placeholder: PDF upload",
-        "text": "Start by uploading a competitor PDF. The pipeline starts automatically after the file is selected. The current PoC simulates the backend process; it does not execute real PDF parsing or database writes.",
-        "hint": "The upload area is intentionally compact because the pipeline is the main navigation element.",
+        "text": "Start by uploading the sample ABF Annual Report 2025 PDF. The Sample PDF button next to Tutorial downloads the exact document used by this prototype. The pipeline starts automatically after a PDF is selected.",
+        "hint": "The current PoC simulates backend processing; it does not execute real PDF parsing, live LLM calls, embeddings or database writes.",
     },
     {
         "title": "3. Read the pipeline",
@@ -380,8 +547,8 @@ TUTORIAL_STEPS = [
     {
         "title": "5. Inspect prompt-chain steps",
         "media": "GIF placeholder: prompt detail",
-        "text": "For semantic LLM-related jobs, the detail panel shows the prompt, input, mock output and saved artifact. This is especially relevant for metadata extraction, passage selection, event extraction and evidence linking.",
-        "hint": "For non-LLM steps, the panel shows implementation notes and expected artifacts instead of pretending that a prompt exists.",
+        "text": "For semantic LLM-related jobs, the detail panel now shows a prompt chain. Each prompt step appears as an expandable button with its own prompt, input checkpoint, mock output and saved artifact.",
+        "hint": "For non-LLM steps, the panel still shows implementation notes and expected artifacts instead of pretending that a prompt exists.",
     },
     {
         "title": "6. Human validation gate",
@@ -392,8 +559,8 @@ TUTORIAL_STEPS = [
     {
         "title": "7. Confirm records individually or all at once",
         "media": "GIF placeholder: confirmation workflow",
-        "text": "You can confirm each extracted event from the dropdown. You can also click Confirm all reviewed events. If some events were not individually confirmed, a confirmation modal appears before the gate is released.",
-        "hint": "This keeps the PoC convenient while still showing that incomplete individual checks are a meaningful review decision.",
+        "text": "You can confirm each of the five ABF sample events from the dropdown. These records are representative examples linked to the dashboard; they are not an exhaustive extraction of the annual report.",
+        "hint": "The workflow keeps the PoC convenient while still showing that analyst review is required before structured data is treated as verified.",
     },
     {
         "title": "8. Check final RDB output",
@@ -649,8 +816,72 @@ def render_pipeline(state, approval_data=None):
     )
 
 
+def render_prompt_chain(job):
+    chain = job.get("prompt_chain") or []
+    items = []
+    for idx, step in enumerate(chain, start=1):
+        items.append(
+            dbc.AccordionItem(
+                [
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    html.Div("Prompt", className="section-label"),
+                                    html.Pre(step.get("prompt", ""), className="prompt-box prompt-chain-prompt"),
+                                ],
+                                md=5,
+                            ),
+                            dbc.Col(
+                                [
+                                    html.Div("Input", className="section-label"),
+                                    html.Div(step.get("input", ""), className="soft-box"),
+                                    html.Div("Saved artifact", className="section-label mt-3"),
+                                    html.Div(step.get("saved", ""), className="soft-box"),
+                                ],
+                                md=3,
+                            ),
+                            dbc.Col(
+                                [
+                                    html.Div("Mock output / checkpoint", className="section-label"),
+                                    html.Pre(json_pretty(step.get("output", {})), className="json-box"),
+                                ],
+                                md=4,
+                            ),
+                        ]
+                    )
+                ],
+                title=f"{idx}. {step.get('title', 'Prompt step')}",
+                item_id=f"{job['key']}-prompt-{idx}",
+            )
+        )
+    return dbc.Accordion(items, start_collapsed=True, always_open=True, className="prompt-chain-accordion")
+
+
 def semantic_detail(job):
     if job["semantic"]:
+        if job.get("prompt_chain"):
+            return html.Div(
+                [
+                    dbc.Alert(
+                        [
+                            html.Strong("LLM prompt chain simulation. "),
+                            "This semantic job is shown as multiple smaller prompts so that intermediate checkpoints remain inspectable before the final event table is created.",
+                        ],
+                        color="info",
+                        className="py-2",
+                    ),
+                    render_prompt_chain(job),
+                    dbc.Row(
+                        [
+                            dbc.Col([html.Div("Job-level input", className="section-label"), html.Div(job["input"], className="soft-box")], md=4),
+                            dbc.Col([html.Div("Saved artifact", className="section-label"), html.Div(job["saved"], className="soft-box")], md=3),
+                            dbc.Col([html.Div("Aggregated mock output", className="section-label"), html.Pre(json_pretty(job["output"]), className="json-box")], md=5),
+                        ],
+                        className="mt-3",
+                    ),
+                ]
+            )
         left_title = "Prompt used"
         left_body = job["prompt"]
     else:
@@ -680,9 +911,18 @@ def human_review_panel(approval_data=None):
         color="warning",
         className="py-2",
     )
+    prototype_scope_alert = dbc.Alert(
+        [
+            html.Strong("Prototype extraction scope. "),
+            "The Human Review panel uses ABF Annual Report 2025 as the sample PDF and shows five representative, dashboard-linked events only. It does not claim to extract every possible event or KPI from the report.",
+        ],
+        color="info",
+        className="py-2",
+    )
     return html.Div(
         [
             status_alert,
+            prototype_scope_alert,
             dbc.Row(
                 [
                     dbc.Col(
@@ -886,10 +1126,12 @@ def layout():
                                     ),
                                     dbc.Col(
                                         [
-                                            dbc.Button("Tutorial", id="ep-open-tutorial", color="info", outline=True, size="sm", n_clicks=0),
+                                            dbc.Button("Tutorial", id="ep-open-tutorial", color="info", outline=True, size="sm", n_clicks=0, className="me-1"),
+                                            dbc.Button("Sample PDF", id="ep-download-sample-pdf", color="success", outline=True, size="sm", n_clicks=0),
+                                            dcc.Download(id="ep-download-sample-pdf-file"),
                                         ],
-                                        md=1,
-                                        className="compact-tutorial-col",
+                                        md=2,
+                                        className="compact-tutorial-col sample-pdf-col",
                                     ),
                                     dbc.Col(
                                         [
@@ -908,7 +1150,7 @@ def layout():
                                             dbc.Button("Reset", id="ep-reset-pipeline", color="secondary", outline=True, size="sm", n_clicks=0),
                                             html.Div(id="ep-upload-status", className="status-text compact-status-text"),
                                         ],
-                                        md=3,
+                                        md=2,
                                     ),
                                     dbc.Col(html.Div(id="ep-metric-cards"), md=3),
                                 ],
@@ -926,6 +1168,17 @@ def layout():
             html.Div(id="ep-job-detail"),
         ]
     )
+
+
+@callback(
+    Output("ep-download-sample-pdf-file", "data"),
+    Input("ep-download-sample-pdf", "n_clicks"),
+    prevent_initial_call=True,
+)
+def download_sample_pdf(n_clicks):
+    if not n_clicks:
+        return dash.no_update
+    return dcc.send_file(str(SAMPLE_PDF_PATH), filename=DEFAULT_FILE)
 
 
 @callback(
@@ -1133,7 +1386,8 @@ def populate_inline_review(event_id, review_records):
         [
             html.Div("Evidence text", className="section-label"),
             html.Blockquote(rec.get("source_text", ""), className="source-quote"),
-            html.Div(f"Confidence: {rec.get('extraction_confidence', '')}", className="generated-by"),
+            dcc.Markdown(rec.get("source_link", ""), className="source-link-text", link_target="_blank"),
+            html.Div(f"Source page: {rec.get('source_page', '')} | Confidence: {rec.get('extraction_confidence', '')}", className="generated-by"),
         ]
     )
     return (

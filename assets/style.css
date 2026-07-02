@@ -1108,3 +1108,85 @@ body {
 .score-kpi-card {
   min-height: 110px;
 }
+
+/* Competitive analysis workspace additions */
+.analysis-header-row {
+    align-items: center;
+    margin-bottom: 1.2rem;
+}
+.analysis-mode-toggle .btn {
+    min-width: 150px;
+    font-weight: 600;
+}
+.analysis-tabs {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+.tab-content-spacious {
+    padding-top: 0.5rem;
+}
+.compact-lead {
+    margin-bottom: 0.75rem;
+}
+.weight-details {
+    border: 1px solid #d9e2ec;
+    border-radius: 10px;
+    padding: 0.75rem 0.9rem;
+    background: #f8fafc;
+}
+.weight-details summary {
+    cursor: pointer;
+    font-weight: 700;
+    color: #0b3b5b;
+}
+.question-input {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 0.55rem 0.7rem;
+}
+
+/* Natural-language explanation below each analytical plot */
+.plot-explanation {
+    margin-top: 0.65rem;
+    padding: 0.75rem 0.9rem;
+    border-left: 4px solid #0d6efd;
+    background: #f8fbff;
+    color: #243b53;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    border-radius: 8px;
+}
+.analysis-card {
+    height: 100%;
+}
+
+.example-question-list {
+    padding-left: 1.1rem;
+    margin-bottom: 0;
+}
+.example-question-item {
+    margin-bottom: 0.45rem;
+    font-size: 0.86rem;
+    color: #334155;
+}
+
+/* Engineering sample PDF and prompt chain additions */
+.sample-pdf-col .btn {
+  margin-bottom: 4px;
+}
+.prompt-chain-accordion .accordion-button {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #0b3b5b;
+}
+.prompt-chain-accordion .accordion-body {
+  background: #fbfdff;
+}
+.prompt-chain-prompt {
+  min-height: 155px;
+}
+.source-link-text {
+  font-size: 0.82rem;
+  margin-top: 0.35rem;
+}
