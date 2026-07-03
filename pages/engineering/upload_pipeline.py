@@ -527,60 +527,142 @@ HUMAN_GATE_INDEX = PIPELINE_ORDER.index(HUMAN_GATE_KEY)
 
 TUTORIAL_STEPS = [
     {
-        "title": "1. Start the tutorial",
-        "media": "Tutorial start",
-        "text": "This tutorial will guide you through the Data Engineering workflow of the prototype. It shows how the sample PDF is downloaded, uploaded, processed through the simulated pipeline, and inspected through prompt-chain outputs and human validation. If you do not need the tutorial, click Skip tutorial. To begin, click Next.",
-        "hint": "The tutorial can be reopened at any time with the Tutorial button next to the Sample PDF button.",
+        "title": "1. Start the guided tutorial",
+        "media": "",
+        "body": """
+### Welcome
+This short tutorial explains how the Data Engineering View works in this prototype.
+
+### What you will learn
+- How to download the supported Sample PDF.
+- How to upload the Sample PDF and start the simulated pipeline.
+- How to read the pipeline status while it progresses.
+- How to inspect the **Prompt** and **Output** shown for LLM-related pipeline jobs.
+- How the Human Review step turns extracted examples into validated structured records.
+
+### Continue or skip
+Click **Next** to start the tutorial. Click **Skip tutorial** if you already know the workflow.
+""",
+        "hint": "You can reopen this guide at any time with the Tutorial button next to the Sample PDF button.",
     },
     {
         "title": "2. Download the Sample PDF",
-        "media": "GIF: Sample PDF download",
+        "media": "Sample PDF download",
         "media_src": "/assets/tutorial/01_download_sample_pdf.gif",
         "media_alt": "Tutorial GIF showing the Sample PDF button being clicked to download the ABF Annual Report 2025 sample document.",
-        "text": "Use the Sample PDF button next to Tutorial to download the ABF Annual Report 2025 sample file. This prototype is configured around one official source document so that the pipeline output, prompt-chain checkpoints, Human Review records and dashboard data remain consistent with each other.",
-        "hint": "If your browser adds a suffix such as '(1)' to the downloaded filename, the upload validation still accepts it as long as the filename starts with 'abf-annual-report-2025'.",
+        "body": """
+### Goal
+Download the official PDF that this prototype is configured to process: **ABF Annual Report 2025**.
+
+### Action
+Click the **Sample PDF** button next to the Tutorial button. Your browser downloads the sample file locally.
+
+### Why this matters
+The simulated prompt-chain outputs, Human Review records and analysis-ready event data are all aligned to this one source document. Restricting the prototype to one document keeps the example auditable and avoids mixing extraction examples from multiple companies.
+""",
+        "hint": "If your browser adds a suffix such as '(1)' to the downloaded filename, the upload check still accepts it as long as the filename starts with 'abf-annual-report-2025'.",
     },
     {
         "title": "3. Upload the Sample PDF",
-        "media": "GIF: Sample PDF upload",
+        "media": "Sample PDF upload",
         "media_src": "/assets/tutorial/02_upload_sample_pdf.gif",
         "media_alt": "Tutorial GIF showing the downloaded ABF Annual Report 2025 sample PDF being uploaded through the Upload PDF box.",
-        "text": "Upload the downloaded sample file through the Upload PDF box. Once the supported file is selected, the simulated pipeline starts automatically. This step represents the transition from an official PDF source to a controlled document-processing workflow.",
-        "hint": "Only the sample PDF is supported in this prototype. Other PDFs trigger a warning modal and do not start the pipeline, because the example prompt-chain outputs and Human Review records are preconfigured for this document.",
+        "body": """
+### Goal
+Start the simulated Data Engineering pipeline with the supported sample document.
+
+### Action
+Upload the downloaded file through the **Upload PDF** box. Once the file is accepted, the pipeline starts automatically.
+
+### What happens next
+The uploaded PDF is registered as the raw source for two conceptual branches: a retrieval-oriented RAG branch and an information-extraction branch that creates structured business-event examples.
+""",
+        "hint": "Only the Sample PDF is supported in this prototype. Other PDFs trigger a warning modal and do not start the pipeline.",
     },
     {
         "title": "4. Watch the pipeline progress",
-        "media": "GIF: pipeline progress",
+        "media": "Pipeline progress",
         "media_src": "/assets/tutorial/03_pipeline_overview.gif",
         "media_alt": "Tutorial GIF showing the simulated Data Engineering pipeline progressing from source intake through RAG indexing, information extraction, human validation and structured storage.",
-        "text": "After the sample PDF is uploaded, the pipeline advances step by step. The common preprocessing branch prepares the document, the RAG branch illustrates retrieval-oriented indexing, and the IE branch shows how structured business events would be extracted and validated. Green check marks indicate completed jobs, spinning indicators show running jobs, and the human-review stage acts as the manual validation gate.",
-        "hint": "This GIF only shows the pipeline advancing. The detailed prompt and output inspection is shown in the next step.",
+        "body": """
+### Goal
+Understand the overall document-to-data workflow.
+
+### How to read the pipeline
+- **Source intake** and **text preparation** represent common preprocessing.
+- The **RAG branch** illustrates retrieval-oriented document indexing.
+- The **IE branch** illustrates event extraction, evidence linking and human validation.
+- Green check marks indicate completed jobs; spinning icons indicate running jobs.
+
+### Business meaning
+The pipeline shows how an annual report can move from an unstructured PDF to controlled, analysis-ready records. The view is designed to make data provenance and validation points visible instead of presenting dashboard data as if it appeared automatically.
+""",
+        "hint": "This step only shows the pipeline advancing. The next step shows how to inspect the prompt-chain details behind individual jobs.",
     },
     {
         "title": "5. Inspect Prompt and Output for a pipeline job",
-        "media": "GIF: prompt and output detail",
+        "media": "Prompt and output detail",
         "media_src": "/assets/tutorial/04_pipeline_prompt_output.gif",
         "media_alt": "Tutorial GIF showing a pipeline job being clicked and the corresponding Prompt and Output areas highlighted with red boxes.",
-        "text": "Clicking a pipeline job opens its detail panel below the pipeline. For LLM-related steps, the panel shows the configured prompt-chain steps, the input checkpoints and the mock outputs. In the GIF, the red boxes highlight the Prompt and Output areas, making clear where the prototype exposes the LLM instruction and the generated intermediate result instead of hiding the reasoning process behind a black-box step.",
-        "hint": "Some semantic jobs contain multiple prompt-chain buttons. Expanding them shows how the task is split into smaller, auditable LLM checkpoints before the final structured records are created.",
+        "body": """
+### Goal
+See how the prototype exposes LLM-related processing instead of hiding it as a black box.
+
+### Action
+Click an LLM-related pipeline job such as **extract-metadata**, **select-passages**, **extract-events-json** or **link-evidence**. The detail panel opens below the pipeline.
+
+### What to inspect
+The GIF highlights the **Prompt** and **Output** areas with red boxes. The Prompt area shows the configured instruction or prompt-chain step. The Output area shows the mock intermediate result that would be passed to the next step.
+
+### Why this matters
+Prompt chains make extraction more auditable. Instead of asking one prompt to produce the final table immediately, the task is split into smaller checkpoints such as metadata detection, passage selection, event extraction and evidence linking.
+""",
+        "hint": "Some semantic jobs contain several prompt-chain buttons. Open them in order to see how the intermediate results build toward the final Human Review records.",
     },
     {
-        "title": "6. Review the human validation gate",
-        "media": "GIF placeholder: human-review gate",
-        "text": "The automated IE branch intentionally stops at human-review. The analyst must check whether the extracted event fields are supported by the evidence text before the records can be treated as validated data.",
-        "hint": "Machine schema checks are not enough for competitive-intelligence data. Business validation requires a human reviewer to confirm that the extracted content is actually supported by the source document.",
+        "title": "6. Review the Human Validation gate",
+        "media": "",
+        "body": """
+### Goal
+Understand why the pipeline intentionally stops before accepting extracted records as final data.
+
+### What the user checks
+At the Human Review gate, the analyst compares each extracted event field with the evidence text from the PDF. The reviewer can correct fields, add comments and confirm the record.
+
+### Business meaning
+For competitive intelligence, a technically valid JSON output is not enough. The important question is whether the extracted claim is actually supported by the source document and whether it is relevant for downstream analysis.
+""",
+        "hint": "The prototype shows representative review records rather than a full extraction of every possible KPI and event in the annual report.",
     },
     {
         "title": "7. Confirm representative extracted records",
-        "media": "GIF placeholder: confirmation workflow",
-        "text": "The Human Review panel shows five representative events extracted from the ABF Annual Report 2025 sample PDF. These records are selected because they connect to the dashboard topics such as margin collapse, restructuring, closure, capacity expansion and decarbonisation. They are not an exhaustive extraction of every possible KPI or event in the annual report.",
-        "hint": "Confirming the sample records demonstrates the Human-in-the-loop step without turning the prototype into a full production extraction system.",
+        "media": "",
+        "body": """
+### Goal
+Demonstrate the human-in-the-loop confirmation step.
+
+### What is shown
+The review panel contains five representative events from the ABF Annual Report 2025. They cover topics that are later used in the analysis view, including margin collapse, restructuring, plant closure, capacity expansion and decarbonisation.
+
+### How to use it
+You can confirm records individually or confirm all records in the dropdown list. The confirmation represents the point at which extracted examples become trusted structured data for the prototype.
+""",
+        "hint": "The five events are examples selected for the prototype. They do not claim to represent every relevant event or KPI in the source PDF.",
     },
     {
         "title": "8. Check the final structured output",
-        "media": "GIF placeholder: final table",
-        "text": "After human validation, the pipeline continues to validation-complete and save-relational-db. The final table represents the structured, human-verified event data that would be available for dashboards, SQL queries or a future retrieval-supported analysis layer.",
-        "hint": "The current app still uses preconfigured prototype data, but the workflow shows the intended handover from document processing to analysis-ready structured data.",
+        "media": "",
+        "body": """
+### Goal
+See the handover from document processing to analysis-ready data.
+
+### What happens after validation
+After the Human Review gate is approved, the pipeline continues to **validation-complete** and **save-relational-db**. The final table represents the structured, human-verified event data that would feed dashboards, SQL queries or a future retrieval-supported analysis layer.
+
+### Business meaning
+This final step connects the Data Engineering View to the Data Analysis View. It demonstrates why source evidence, prompt-chain transparency and human validation are necessary before extracted document information is used for management analysis.
+""",
+        "hint": "In this frontend prototype, storage is simulated. The workflow nevertheless shows the intended transition from PDF evidence to validated analytical records.",
     },
 ]
 
@@ -1116,7 +1198,7 @@ def tutorial_modal():
                 [
                     html.Div(id="ep-tutorial-progress", className="tutorial-progress-text"),
                     html.Div(id="ep-tutorial-media", className="tutorial-media-placeholder"),
-                    html.P(id="ep-tutorial-text", className="tutorial-main-text"),
+                    html.Div(id="ep-tutorial-text", className="tutorial-main-text"),
                     html.Div(id="ep-tutorial-hint", className="tutorial-hint-box"),
                 ]
             ),
@@ -1130,7 +1212,7 @@ def tutorial_modal():
         ],
         id="ep-tutorial-modal",
         centered=True,
-        size="lg",
+        size="xl",
         backdrop="static",
         keyboard=False,
         is_open=True,
@@ -1291,18 +1373,14 @@ def render_tutorial(store):
             [
                 html.Img(
                     src=item["media_src"],
-                    alt=item.get("media_alt", item["media"]),
+                    alt=item.get("media_alt", item.get("media", "Tutorial media")),
                     className="tutorial-media-image",
-                ) if item.get("media_src") else html.Div(
-                    [
-                        html.Div(item["media"], className="tutorial-media-label"),
-                        html.Div("GIF / screenshot can be added later here.", className="tutorial-media-subtitle"),
-                    ]
-                ),
-            ]
-        ),
-        item["text"],
-        item["hint"],
+                )
+            ],
+            className="tutorial-media-frame",
+        ) if item.get("media_src") else None,
+        dcc.Markdown(item.get("body", item.get("text", "")), className="tutorial-structured-text"),
+        dcc.Markdown(item["hint"], className="tutorial-hint-markdown"),
         step == 0,
         "Finish" if is_last else "Next",
     )
