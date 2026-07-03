@@ -590,9 +590,33 @@ This prototype accepts only the designated sample document **ABF Annual Report 2
         "hint": "Only the designated sample PDF is accepted in this prototype. Any other PDF shows a warning modal and does not start the pipeline. A filename suffix such as '(1)' is still accepted if the file starts with 'abf-annual-report-2025'.",
     },
     {
-        "title": "4. Watch the pipeline progress",
+        "title": "4. Understand the upload validation rule",
+        "media": "GIF: unsupported PDF upload warning",
+        "media_src": "/assets/tutorial/03_upload_validation_note.gif",
+        "media_alt": "Tutorial GIF showing that an unsupported PDF is rejected by the prototype and the pipeline does not start.",
+        "text": """
+#### Goal
+
+Understand why the prototype accepts only the designated sample PDF.
+
+#### What happens if another PDF is uploaded
+
+If a user uploads a PDF other than **ABF Annual Report 2025**, the app shows a warning and does not start the pipeline. This is intentional: the prompt-chain outputs, Human Verification examples and dashboard-linked event records are prepared for one specific sample document.
+
+#### What is still accepted
+
+If the correct sample PDF is downloaded multiple times, the browser may add a suffix such as **(1)** or **(2)** to the filename. The app still accepts it as long as the filename begins with **abf-annual-report-2025**.
+
+#### Business meaning
+
+This prevents a misleading prototype behavior where arbitrary PDFs would appear to produce validated competitive-intelligence data even though no real extraction backend is implemented. The validation rule keeps the demo internally consistent and makes clear that the current workflow is sample-document based.
+""",
+        "hint": "Use the Sample PDF button to download the supported document. Other PDFs are rejected because the prototype does not run live PDF parsing or live LLM extraction.",
+    },
+    {
+        "title": "5. Watch the pipeline progress",
         "media": "GIF: pipeline progress",
-        "media_src": "/assets/tutorial/03_pipeline_overview.gif",
+        "media_src": "/assets/tutorial/04_pipeline_overview.gif",
         "media_alt": "Tutorial GIF showing the simulated Data Engineering pipeline progressing from source intake through RAG indexing, information extraction, human validation and structured storage.",
         "text": """
 #### Goal
@@ -610,9 +634,9 @@ The key idea is separation of responsibilities: document preparation and retriev
         "hint": "This GIF focuses on the pipeline advancing. The next step shows how to inspect the prompt and output behind individual pipeline jobs.",
     },
     {
-        "title": "5. Inspect Prompt and Output for a pipeline job",
+        "title": "6. Inspect Prompt and Output for a pipeline job",
         "media": "GIF: prompt and output detail",
-        "media_src": "/assets/tutorial/04_pipeline_prompt_output.gif",
+        "media_src": "/assets/tutorial/05_pipeline_prompt_output.gif",
         "media_alt": "Tutorial GIF showing a pipeline job being clicked and the corresponding Prompt and Output areas highlighted with red boxes.",
         "text": """
 #### Goal
@@ -630,9 +654,9 @@ The GIF highlights the **Prompt** and **Output** areas with red boxes. These are
         "hint": "Some semantic jobs contain multiple prompt-chain buttons. Expanding them shows how the task is split into smaller, auditable LLM checkpoints.",
     },
     {
-        "title": "6. Use the Human Verification workflow",
+        "title": "7. Use the Human Verification workflow",
         "media": "GIF: human verification workflow",
-        "media_src": "/assets/tutorial/05_human_verification.gif",
+        "media_src": "/assets/tutorial/06_human_verification.gif",
         "media_alt": "Tutorial GIF showing the Human Verification workflow with red boxes around event selection, event review and editing, save, confirm, and confirm while ignoring unreviewed events.",
         "text": """
 #### Goal
@@ -660,7 +684,7 @@ This is the core control point of the prototype. It demonstrates that structured
         "hint": "The prototype shows only five representative review events. They are examples linked to the later dashboard, not a full extraction of every possible event in the sample PDF.",
     },
     {
-        "title": "7. Understand the representative review sample",
+        "title": "8. Understand the representative review sample",
         "text": """
 #### Goal
 
@@ -677,9 +701,9 @@ Review each record against its evidence text, edit fields if necessary, and conf
         "hint": "The five records are illustrative prototype examples, not a complete extraction of all possible events in the ABF Annual Report 2025.",
     },
     {
-        "title": "8. Finish the workflow: store verified data in the database",
+        "title": "9. Finish the workflow: store verified data in the database",
         "media": "GIF: verified data stored in database",
-        "media_src": "/assets/tutorial/06_verified_data_saved_to_db.gif",
+        "media_src": "/assets/tutorial/07_verified_data_saved_to_db.gif",
         "media_alt": "Tutorial GIF showing the final pipeline step where verified data proceeds to save-relational-db and is stored as structured database output.",
         "text": """
 #### Goal
