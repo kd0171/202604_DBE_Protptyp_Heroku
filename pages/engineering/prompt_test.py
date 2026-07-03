@@ -527,9 +527,27 @@ The database should receive only records that are source-linked, schema-valid an
 
 
 def prompt_pair(item):
+    prompt_id = f"pt-prompt-text-{item['step']}"
     return dbc.Row(
         [
-            dbc.Col([html.Div("Prompt", className="section-label"), html.Pre(item["prompt"], className="prompt-box prompt-test-pre")], md=6),
+            dbc.Col(
+                [
+                    html.Div(
+                        [
+                            html.Div(f"{item['step']}. Prompt", className="section-label mb-0"),
+                            dcc.Clipboard(
+                                id=f"pt-copy-prompt-{item['step']}",
+                                target_id=prompt_id,
+                                title="Copy prompt",
+                                className="copy-prompt-button",
+                            ),
+                        ],
+                        className="prompt-test-label-row",
+                    ),
+                    html.Pre(item["prompt"], id=prompt_id, className="prompt-box prompt-test-pre"),
+                ],
+                md=6,
+            ),
             dbc.Col([html.Div("Desired output", className="section-label"), html.Pre(item["output"], className="json-box prompt-test-pre")], md=6),
         ],
         className="g-3",
@@ -546,7 +564,7 @@ def prompt_card(item):
             ),
             prompt_pair(item),
         ],
-        title=f"Prompt {item['step']}: {item['title']}",
+        title=f"{item['step']}. Prompt: {item['title']}",
         item_id=f"prompt-{item['step']}",
     )
 

@@ -53,6 +53,14 @@ PHASE_LABELS = {
     "structured_storage": "Structured Storage",
 }
 
+
+PROMPT_IDEA_NOTICE = [
+    html.Strong("Prompt concept only. "),
+    "The prompts shown here are prototype ideas for explaining the intended LLM-assisted workflow. ",
+    "They are not exact, fully tested or scientifically validated production prompts. ",
+    "They should be refined, tested and documented before being used for real extraction or evaluation."
+]
+
 COMMON_PHASES = ["source_intake", "text_preparation"]
 RAG_PHASES = ["rag_indexing", "retrieval_ready"]
 IE_PHASES = ["event_extraction", "human_validation", "structured_storage"]
@@ -1130,6 +1138,7 @@ def semantic_detail(job):
                         color="info",
                         className="py-2",
                     ),
+                    dbc.Alert(PROMPT_IDEA_NOTICE, color="warning", className="py-2"),
                     render_prompt_chain(job),
                     dbc.Row(
                         [
@@ -1147,9 +1156,14 @@ def semantic_detail(job):
         left_title = "Implementation note"
         left_body = f"{job['prompt']}\n\nTo be decided / relevant implementation issue:\n{job['note']}"
 
+    left_column_children = [html.Div(left_title, className="section-label")]
+    if job.get("semantic"):
+        left_column_children.append(dbc.Alert(PROMPT_IDEA_NOTICE, color="warning", className="py-2"))
+    left_column_children.append(html.Pre(left_body, className="prompt-box"))
+
     return dbc.Row(
         [
-            dbc.Col([html.Div(left_title, className="section-label"), html.Pre(left_body, className="prompt-box")], md=5),
+            dbc.Col(left_column_children, md=5),
             dbc.Col([html.Div("Input", className="section-label"), html.Div(job["input"], className="soft-box"), html.Div("Saved artifact", className="section-label mt-3"), html.Div(job["saved"], className="soft-box")], md=3),
             dbc.Col([html.Div("Mock output / result", className="section-label"), html.Pre(json_pretty(job["output"]), className="json-box")], md=4),
         ]
