@@ -13,3 +13,8 @@ Updated the Data Engineering tutorial to improve clarity and visual guidance.
   - `02_upload_sample_pdf.gif`
   - `03_pipeline_overview.gif`
   - `04_pipeline_prompt_output.gif`
+
+
+## Placeholder removal follow-up
+
+The first tutorial step is now text-only. The media container is hidden whenever a tutorial step has no actual GIF/image source, so empty dashed placeholders are no longer shown. Steps without GIF assets display only their structured explanatory text.

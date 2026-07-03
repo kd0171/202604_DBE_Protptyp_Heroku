@@ -627,7 +627,6 @@ The GIF highlights the **Prompt** and **Output** areas with red boxes. These are
     },
     {
         "title": "6. Review the human validation gate",
-        "media": "GIF placeholder: human-review gate",
         "text": """
 #### Goal
 
@@ -645,7 +644,6 @@ LLM extraction can produce plausible but incomplete or wrongly structured record
     },
     {
         "title": "7. Confirm representative extracted records",
-        "media": "GIF placeholder: confirmation workflow",
         "text": """
 #### Goal
 
@@ -663,7 +661,6 @@ Review each record against its evidence text, edit fields if necessary, and conf
     },
     {
         "title": "8. Check the final structured output",
-        "media": "GIF placeholder: final table",
         "text": """
 #### Goal
 
@@ -1367,6 +1364,7 @@ def update_tutorial_state(open_clicks, skip_clicks, prev_clicks, next_clicks, st
     Output("ep-tutorial-title", "children"),
     Output("ep-tutorial-progress", "children"),
     Output("ep-tutorial-media", "children"),
+    Output("ep-tutorial-media", "style"),
     Output("ep-tutorial-text", "children"),
     Output("ep-tutorial-hint", "children"),
     Output("ep-tutorial-prev", "disabled"),
@@ -1379,22 +1377,30 @@ def render_tutorial(store):
     item = TUTORIAL_STEPS[step]
     is_last = step == len(TUTORIAL_STEPS) - 1
 
+    media_children = None
+    media_style = {"display": "none"}
+    if item.get("media_src"):
+        media_children = html.Img(
+            src=item["media_src"],
+            alt=item.get("media_alt", item.get("media", "Tutorial media")),
+            className="tutorial-media-image",
+        )
+        media_style = {}
+    elif item.get("media"):
+        media_children = html.Div(
+            [
+                html.Div(item.get("media", ""), className="tutorial-media-label"),
+                html.Div("GIF / screenshot can be added later here.", className="tutorial-media-subtitle"),
+            ]
+        )
+        media_style = {}
+
     return (
         bool(store.get("open", True)),
         item["title"],
         f"Step {step + 1} of {len(TUTORIAL_STEPS)}",
-        html.Img(
-            src=item["media_src"],
-            alt=item.get("media_alt", item.get("media", "Tutorial media")),
-            className="tutorial-media-image",
-        ) if item.get("media_src") else (
-            html.Div(
-                [
-                    html.Div(item.get("media", ""), className="tutorial-media-label"),
-                    html.Div("GIF / screenshot can be added later here.", className="tutorial-media-subtitle"),
-                ]
-            ) if item.get("media") else None
-        ),
+        media_children,
+        media_style,
         dcc.Markdown(item["text"], className="tutorial-markdown"),
         item["hint"],
         step == 0,
