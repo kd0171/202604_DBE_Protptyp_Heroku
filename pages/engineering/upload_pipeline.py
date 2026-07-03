@@ -626,24 +626,37 @@ The GIF highlights the **Prompt** and **Output** areas with red boxes. These are
         "hint": "Some semantic jobs contain multiple prompt-chain buttons. Expanding them shows how the task is split into smaller, auditable LLM checkpoints.",
     },
     {
-        "title": "6. Review the human validation gate",
+        "title": "6. Use the Human Verification workflow",
+        "media": "GIF: human verification workflow",
+        "media_src": "/assets/tutorial/05_human_verification.gif",
+        "media_alt": "Tutorial GIF showing the Human Verification workflow with red boxes around event selection, event review and editing, save, confirm, and confirm while ignoring unreviewed events.",
         "text": """
 #### Goal
 
-Understand why the pipeline deliberately stops before storing extracted events as final data.
+Understand how the analyst validates extracted event records before they become analysis-ready data.
 
-#### What happens here
+#### What to do
 
-The Human Review panel shows extracted event candidates together with the supporting evidence text. The analyst checks whether the fields, numbers, event type and source reference are actually supported by the PDF.
+In the **Human Review** section, first select an event from the review list. Then inspect the event fields, compare them with the source evidence and edit values if needed. After making changes, click **Save** to keep the edits for that record. Next, click **Confirm** to mark the reviewed event as validated.
 
-#### Why this matters
+#### What the red boxes highlight
 
-LLM extraction can produce plausible but incomplete or wrongly structured records. The validation gate prevents draft extraction output from being treated as reliable competitive-intelligence data without human confirmation.
+The GIF marks five important interaction points with red boxes:
+
+1. **Event selection** – choose which extracted event you want to review.
+2. **Review and edit event information** – check the event type, description, company, numeric values and evidence.
+3. **Save** – preserve corrections before final confirmation.
+4. **Confirm** – approve one reviewed event.
+5. **Confirm while ignoring unreviewed events** – finish the validation step even if some prototype example records were not individually reviewed.
+
+#### Business meaning
+
+This is the core control point of the prototype. It demonstrates that structured competitive-intelligence data is not accepted solely because the LLM produced it. An analyst must verify whether the extraction is materially correct, sufficiently evidenced and usable for later dashboard analysis.
 """,
-        "hint": "Machine schema checks are useful, but they do not replace a business review of the evidence and extracted meaning.",
+        "hint": "The prototype shows only five representative review events. They are examples linked to the later dashboard, not a full extraction of every possible event in the sample PDF.",
     },
     {
-        "title": "7. Confirm representative extracted records",
+        "title": "7. Understand the representative review sample",
         "text": """
 #### Goal
 
