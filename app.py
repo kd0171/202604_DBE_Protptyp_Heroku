@@ -14,6 +14,7 @@ server = app.server
 
 engineering_links = [
     ("Upload & Pipeline", "/engineering/upload-pipeline"),
+    ("Prompt Test", "/engineering/prompt-test"),
 ]
 
 analysis_links = [
@@ -38,7 +39,7 @@ app.layout = html.Div([
         dbc.Container([
             html.A([
                 html.Div("Nordzucker Competitor Intelligence Data Product", className="app-title"),
-                html.Div("LLM document-to-table pipeline + data analysis + RAG-like interaction", className="app-subtitle"),
+                html.Div("LLM-assisted document-to-table pipeline + prompt-chain test + data analysis", className="app-subtitle"),
             ], href="/", className="brand-link"),
             dbc.Nav([
                 dbc.NavLink("Home", href="/", id="top-home"),

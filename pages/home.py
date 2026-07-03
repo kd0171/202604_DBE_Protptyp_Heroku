@@ -30,7 +30,13 @@ def layout():
                     "PDF upload and GitLab CI/CD-style prompt-chain pipeline for preparing RAG-ready documents and structured event records.",
                     className="home-card-text"
                 ),
-                dbc.Button("Open Data Engineering View", href="/engineering/upload-pipeline", color="primary"),
+                html.Div(
+                    [
+                        dbc.Button("Open Data Engineering View", href="/engineering/upload-pipeline", color="primary", className="me-2"),
+                        dbc.Button("Prompt Test", href="/engineering/prompt-test", color="info", outline=True),
+                    ],
+                    className="home-button-row",
+                ),
             ]), className="home-card"), md=6),
             dbc.Col(dbc.Card(dbc.CardBody([
                 html.Div("Value demonstration", className="home-card-label"),

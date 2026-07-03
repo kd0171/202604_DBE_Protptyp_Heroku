@@ -1226,3 +1226,26 @@ body {
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
   object-fit: contain;
 }
+
+
+/* Prompt Test view */
+.home-button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+.prompt-test-accordion {
+    margin-top: 1rem;
+}
+.prompt-test-pre {
+    min-height: 420px;
+    max-height: 620px;
+    overflow: auto;
+    white-space: pre-wrap;
+}
+.prompt-test-card-title {
+    color: #0b3b5b;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}

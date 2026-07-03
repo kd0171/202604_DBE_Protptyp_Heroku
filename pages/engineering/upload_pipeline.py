@@ -465,6 +465,38 @@ PROMPT_CHAINS = {
             "saved": "engineering_sample_events.csv",
         },
     ],
+    "chunk_document": [
+        {
+            "title": "Generate strategic evidence chunks",
+            "prompt": "Convert relevant ABF Sugar text blocks into self-contained strategic evidence chunks. Use only allowed categories: finance, risk, sustainability, operations, products, regulation, investment and market_context. Each chunk must include topic, strategic_signal, source_page, source_section, exact source_text and dashboard_relevance.",
+            "input": "Cleaned ABF Sugar text blocks with page and section references.",
+            "output": {"chunks_created": 8, "example_category": "finance", "example_topic": "Sugar segment profitability collapse", "source_page_required": True},
+            "saved": "strategic_evidence_chunks.jsonl",
+        },
+        {
+            "title": "Validate chunk completeness",
+            "prompt": "Check whether each chunk is self-contained, source-grounded and correctly scoped to ABF Sugar rather than ABF Group. Flag chunks that are too broad, too small, missing source text or assigned to an invalid category.",
+            "input": "Draft strategic evidence chunks.",
+            "output": {"chunks_checked": 8, "kept": 8, "invalid_categories": 0, "missing_source_text": 0},
+            "saved": "chunk_quality_report.json",
+        },
+        {
+            "title": "Select chunks for extraction",
+            "prompt": "Select the chunks that can support dashboard-ready event and indicator records. Prioritise chunks with explicit values, concrete business events or direct evidence for risk, finance, operations, investment or sustainability.",
+            "input": "Validated strategic evidence chunks and dashboard dimensions.",
+            "output": {"selected_chunks": 5, "target_outputs": ["event_records", "indicator_records", "human_review_payload"]},
+            "saved": "selected_chunks_for_ie.json",
+        },
+    ],
+    "schema_precheck": [
+        {
+            "title": "Validate schema and taxonomy",
+            "prompt": "Check that all extracted event and indicator records use allowed categories, allowed event types, required fields, valid numeric values and page-linked evidence. Return a validation status and recommended human action.",
+            "input": "Event records, indicator records, allowed categories and source-linked chunks.",
+            "output": {"schema_status": "passed", "taxonomy_status": "valid", "numeric_values_status": "passed", "records_requiring_human_review": 5},
+            "saved": "schema_validation_report.json",
+        },
+    ],
 }
 
 SAMPLE_JOB_UPDATES = {
@@ -514,7 +546,70 @@ SAMPLE_JOB_UPDATES = {
     "schema_precheck": {"output": {"records_checked": 5, "machine_check_passed": 5, "requires_human_review": 5}},
 }
 
+LLM_ASSISTED_JOB_UPDATES = {
+    "upload_pdf": {
+        "semantic": True,
+        "prompt": "Prompt-configured automation checkpoint: validate that the uploaded document is the supported ABF Annual Report 2025 sample and create the raw document intake record.",
+        "note": "The file transfer itself is application logic. The LLM-assisted part is the document identity and scope configuration used by the downstream pipeline.",
+    },
+    "register_source": {
+        "semantic": True,
+        "prompt": "Create a source registry record with document_id, source_owner, peer scope, document_type and traceability fields so all later chunks and events can point back to the same source.",
+        "note": "This is represented as a prompt-configured source-registration checkpoint in the prototype.",
+    },
+    "parse_pdf": {
+        "semantic": True,
+        "prompt": "Create a section map from the parsed PDF layout. Identify ABF Sugar, Financial Review, sustainability and risk-relevant sections while preserving page references.",
+        "note": "Physical PDF parsing can be rule-based, but the section mapping and relevance classification are shown as LLM-assisted.",
+    },
+    "extract_clean_text": {
+        "semantic": True,
+        "prompt": "Clean OCR/PDF text blocks, remove repeated headers and footers, preserve page references and mark the likely section title and business scope for each text block.",
+        "note": "The pipeline treats text normalization and business-scope tagging as prompt-configured preprocessing.",
+    },
+    "chunk_document": {
+        "semantic": True,
+        "short": "Generate strategic evidence chunks",
+        "purpose": "Create source-grounded strategic evidence chunks that support retrieval, evidence display and later event extraction.",
+        "prompt": "Prompt chain shown below. It converts cleaned ABF Sugar text blocks into strategic evidence chunks and validates their source grounding.",
+        "output": {"strategic_evidence_chunks": 8, "categories": ["finance", "risk", "operations", "investment", "sustainability"], "source_linked": True},
+        "saved": "strategic_evidence_chunks.jsonl",
+    },
+    "create_embeddings": {
+        "semantic": True,
+        "prompt": "Prepare embedding-ready chunk metadata. Decide which fields are used as searchable content and which fields remain metadata filters such as company, category, year and source_page.",
+        "note": "The embedding vector itself is produced by an embedding model; the prompt-configured step defines the searchable chunk representation.",
+    },
+    "store_vector_db": {
+        "semantic": True,
+        "prompt": "Create the retrieval-index configuration for strategic evidence chunks, including collection name, metadata filters and traceability fields.",
+        "note": "The prototype displays the intended vector-store configuration rather than running a live vector database.",
+    },
+    "prepare_retrieval": {
+        "semantic": True,
+        "prompt": "Prepare retrieval rules for future RAG queries: map user intent to dashboard categories, rank source-linked chunks and require evidence before generating answers.",
+        "note": "This makes the RAG branch auditable even though the current interactive mode uses preconfigured answers.",
+    },
+    "schema_precheck": {
+        "semantic": True,
+        "prompt": "Prompt chain shown below. It validates the extracted event and indicator records against schema, taxonomy, numeric-value and source-evidence requirements.",
+        "note": "This step simulates machine-readable validation before Human Review.",
+    },
+    "validation_complete": {
+        "semantic": True,
+        "prompt": "Summarize the human validation decision and mark confirmed or edited records as eligible for structured storage.",
+        "note": "This checkpoint separates draft LLM output from verified data.",
+    },
+    "save_relational_db": {
+        "semantic": True,
+        "prompt": "Publish only human-verified, source-linked event and indicator records to the relational database output layer.",
+        "note": "The database save itself is application logic; the prompt-configured checkpoint explains which records are eligible to be stored.",
+    },
+}
+
 for _job in JOBS:
+    if _job["key"] in LLM_ASSISTED_JOB_UPDATES:
+        _job.update(LLM_ASSISTED_JOB_UPDATES[_job["key"]])
     if _job["key"] in PROMPT_CHAINS:
         _job["prompt_chain"] = PROMPT_CHAINS[_job["key"]]
     if _job["key"] in SAMPLE_JOB_UPDATES:
@@ -537,7 +632,7 @@ This guided walkthrough explains how the prototype turns one official sample PDF
 
 - How to download and upload the supported sample PDF.
 - How the simulated pipeline moves through document intake, RAG preparation, information extraction, human validation and structured storage.
-- How LLM-related steps expose their prompt-chain checkpoints, inputs and outputs.
+- How the LLM-assisted pipeline exposes prompt-chain checkpoints, inputs and outputs.
 
 #### How to continue
 
@@ -645,13 +740,13 @@ See how LLM-related pipeline steps are made transparent instead of being shown a
 
 #### What to do
 
-Click a pipeline job such as **extract-metadata**, **select-passages**, **extract-events-json** or **link-evidence**. The detail panel below the pipeline shows the configured prompt-chain steps, inputs, saved artifacts and mock outputs.
+Click a pipeline job such as **chunk-document**, **extract-events-json**, **link-evidence** or **schema-precheck**. The detail panel below the pipeline shows the configured prompt-chain steps, inputs, saved artifacts and mock outputs.
 
 #### What to look for
 
 The GIF highlights the **Prompt** and **Output** areas with red boxes. These areas show which instruction would be sent to the LLM and what intermediate result would be produced before the next validation or extraction step.
 """,
-        "hint": "Some semantic jobs contain multiple prompt-chain buttons. Expanding them shows how the task is split into smaller, auditable LLM checkpoints.",
+        "hint": "Some LLM-assisted jobs contain multiple prompt-chain buttons. Expanding them shows how the task is split into smaller, auditable LLM checkpoints.",
     },
     {
         "title": "7. Use the Human Verification workflow",
