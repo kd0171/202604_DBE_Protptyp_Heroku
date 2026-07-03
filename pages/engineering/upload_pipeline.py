@@ -582,8 +582,12 @@ Upload the downloaded ABF Annual Report 2025 file through the **Upload PDF** box
 #### What this represents
 
 In a production system, this step would register the PDF, store the source document and create a stable document ID. In this prototype, no real PDF parsing or backend storage is executed; the app shows the intended processing flow with preconfigured outputs.
+
+#### Important limitation
+
+This prototype accepts only the designated sample document **ABF Annual Report 2025**. If a different PDF is uploaded, the app does not accept it and the pipeline does not start. If your browser renames the downloaded sample file by adding a suffix such as **(1)**, it is still treated as the same supported sample PDF.
 """,
-        "hint": "Only the sample PDF is supported. Other PDFs show a warning modal and do not start the pipeline because the prompt-chain outputs and review records are prepared for this document.",
+        "hint": "Only the designated sample PDF is accepted in this prototype. Any other PDF shows a warning modal and does not start the pipeline. A filename suffix such as '(1)' is still accepted if the file starts with 'abf-annual-report-2025'.",
     },
     {
         "title": "4. Watch the pipeline progress",
@@ -673,21 +677,28 @@ Review each record against its evidence text, edit fields if necessary, and conf
         "hint": "The five records are illustrative prototype examples, not a complete extraction of all possible events in the ABF Annual Report 2025.",
     },
     {
-        "title": "8. Check the final structured output",
+        "title": "8. Finish the workflow: store verified data in the database",
+        "media": "GIF: verified data stored in database",
+        "media_src": "/assets/tutorial/06_verified_data_saved_to_db.gif",
+        "media_alt": "Tutorial GIF showing the final pipeline step where verified data proceeds to save-relational-db and is stored as structured database output.",
         "text": """
 #### Goal
 
-See the handover from human-validated extraction results to analysis-ready structured data.
+See the final handover from human-verified review records to stored structured data.
 
-#### What happens after validation
+#### What happens here
 
-Once the review gate is completed, the pipeline continues to **validation-complete** and **save-relational-db**. The final table represents the structured event records that would be stored for dashboards, SQL queries or future retrieval-supported analysis.
+After Human Verification is completed, the pipeline continues to **validation-complete** and then to **save-relational-db**. This final step indicates that the extracted records have already passed the review gate and that **verified data is stored in the database**.
+
+#### Why this matters
+
+This is the point where document-based extraction becomes reusable business data. Instead of keeping information only as PDF text or temporary LLM output, the workflow stores reviewed records as structured, source-linked data that can later be used in the analysis dashboard, evidence tables and downstream business queries.
 
 #### Business meaning
 
-The final output is no longer just document text. It is a structured, source-linked dataset that can support competitive analysis, evidence tables, dashboard filters and future interactive question answering.
+The most important message of the full tutorial is that only **verified** records are published to structured storage. The database is therefore presented as the trusted output layer of the workflow, not as a direct dump of raw LLM extraction results.
 """,
-        "hint": "The current app uses preconfigured prototype data, but the workflow shows the intended handover from official documents to analysis-ready data.",
+        "hint": "This completes the tutorial. The final database step represents the publication of reviewed, trusted data for later analysis.",
     },
 ]
 
@@ -1417,7 +1428,7 @@ def render_tutorial(store):
         dcc.Markdown(item["text"], className="tutorial-markdown"),
         item["hint"],
         step == 0,
-        "Finish" if is_last else "Next",
+        "End tutorial" if is_last else "Next",
     )
 
 
