@@ -684,24 +684,7 @@ This is the core control point of the prototype. It demonstrates that structured
         "hint": "The prototype shows only five representative review events. They are examples linked to the later dashboard, not a full extraction of every possible event in the sample PDF.",
     },
     {
-        "title": "8. Understand the representative review sample",
-        "text": """
-#### Goal
-
-Confirm a small representative sample of extracted ABF Sugar events.
-
-#### What is shown
-
-The prototype displays five review records linked to dashboard-relevant topics: margin deterioration, restructuring, plant closure, capacity expansion and decarbonisation. These records demonstrate the validation workflow without trying to extract every possible KPI or event from the full annual report.
-
-#### How to use it
-
-Review each record against its evidence text, edit fields if necessary, and confirm the record. A full production system would repeat this process for a larger set of extracted candidates and persist the review history.
-""",
-        "hint": "The five records are illustrative prototype examples, not a complete extraction of all possible events in the ABF Annual Report 2025.",
-    },
-    {
-        "title": "9. Finish the workflow: store verified data in the database",
+        "title": "8. Finish the workflow: store verified data in the database",
         "media": "GIF: verified data stored in database",
         "media_src": "/assets/tutorial/07_verified_data_saved_to_db.gif",
         "media_alt": "Tutorial GIF showing the final pipeline step where verified data proceeds to save-relational-db and is stored as structured database output.",
