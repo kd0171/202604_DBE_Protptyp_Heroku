@@ -252,7 +252,7 @@ PROMPT_CHAINS = [
         "title": "Source intake, metadata and text preparation",
         "subtitle": "Compresses upload-pdf, register-source, extract-metadata, parse-pdf and extract-clean-text into one demo prompt.",
         "pipeline_mapping": "Source Intake: upload-pdf / register-source / extract-metadata; Text Preparation: parse-pdf / extract-clean-text",
-        "input_hint": "Paste page-labelled source excerpts. For a short demo, include the ABF Sugar / Vivergo paragraph and the source page number from the PDF.",
+        "input_hint": "Paste a short page-labelled excerpt from the sample PDF. Choose text that contains concrete business facts, but do not pre-classify the event for the model.",
         "prompt": """You are preparing an LLM-assisted competitive intelligence extraction demo for Nordzucker AG.
 
 This prompt corresponds to the early Data Engineering pipeline stages:
@@ -325,7 +325,7 @@ Output schema:
 }
 
 SOURCE_TEXT:
-Paste page-labelled source text here. For the ABF demo, use relevant excerpts from the Sugar operating review, Vivergo closure passage, Financial Review segmental summary, or Sugar ESG/investment pages.""",
+Paste page-labelled source text here. For a demo, choose a concise excerpt that contains concrete facts about a peer business unit, such as financial performance, operational changes, regulatory exposure, investment activity, sustainability projects or product/co-product developments. Do not pre-label the event in the pasted text; let the prompt chain identify the category and event type from the evidence.""",
         "output": DESIRED_SCOPE_OUTPUT,
     },
     {
@@ -364,12 +364,13 @@ Allowed dashboard categories:
 Task:
 Convert the pasted source text into strategic evidence chunks. Each chunk must be a self-contained, source-grounded semantic unit that can later be used for retrieval, evidence display, event extraction and Human Review.
 
-High-priority extraction targets for the ABF Sugar demo, if present in SOURCE_TEXT:
-- Sugar segment profitability deterioration
-- Azucarera restructuring or footprint reduction
-- Vivergo bioethanol plant closure
-- Ubombo or Tanzania capacity expansion / co-product investment
-- British Sugar decarbonisation or emissions reduction projects
+Candidate information types to capture when they are present in SOURCE_TEXT:
+- segment financial performance, margins or profit/loss changes
+- plant, site, footprint or capacity changes
+- closures, restructuring or discontinued activities
+- regulatory or policy exposure affecting operations
+- investments in capacity, efficiency, products, co-products or decarbonisation
+- sustainability projects with measurable operational impact
 
 Instructions:
 1. Use only SOURCE_TEXT and, optionally, OUTPUT_FROM_PROMPT_1.
@@ -736,7 +737,7 @@ Download the same official ABF Annual Report 2025 sample PDF used by the Data En
 
 #### What to do
 
-Open the PDF and copy the relevant text around the ABF Sugar operating review and Financial Review segment table.
+Open the PDF and copy a concise page-labelled excerpt that contains concrete business facts. The prompt chain should infer the relevant category, event type and review fields from the evidence rather than from a pre-labelled instruction.
 
 #### Why this matters
 
@@ -990,7 +991,7 @@ def layout():
             dbc.Col(dbc.Card(dbc.CardBody([
                 html.Div("Recommended demo material", className="section-label"),
                 html.H4("ABF Annual Report 2025", className="prompt-test-card-title"),
-                html.P("Use the Sample PDF and copy only the relevant paragraphs into ChatGPT: for example the ABF Sugar operating review, the Vivergo closure paragraph, and the Financial Review segmental summary. The prompts themselves remain general and do not contain source excerpts.", className="home-card-text"),
+                html.P("Use the Sample PDF and copy a short page-labelled excerpt into ChatGPT. Choose text that contains concrete business facts, such as performance changes, operational decisions, regulatory exposure, investments or sustainability projects. The prompts remain general and do not contain source excerpts or pre-classified events.", className="home-card-text"),
             ]), className="home-card"), md=6),
             dbc.Col(dbc.Card(dbc.CardBody([
                 html.Div("Output logic", className="section-label"),
