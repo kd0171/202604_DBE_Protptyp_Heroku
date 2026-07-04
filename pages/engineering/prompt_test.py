@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 
 import dash
 from dash import Input, Output, State, callback, ctx, dcc, html
@@ -158,9 +159,10 @@ Important rules:
 4. If the text refers to ABF Sugar, British Sugar, Azucarera, Illovo Sugar or Vivergo in the context of Sugar, mark scope as "ABF Sugar".
 5. Each chunk must be self-contained: someone should understand the business meaning without reading the whole PDF.
 6. Include exact source text excerpts.
-7. Include numeric values only if they are explicitly stated.
-8. Use "unknown" if a field cannot be determined.
-9. Return JSON only.
+7. For every category, topic and strategic_signal assignment, include the original source text that supports it.
+8. Include numeric values only if they are explicitly stated.
+9. Use "unknown" if a field cannot be determined.
+10. Return JSON only.
 
 Output schema:
 {
@@ -173,7 +175,10 @@ Output schema:
       "category": "finance | risk | sustainability | operations | products | regulation | investment | market_context",
       "secondary_categories": ["risk"],
       "topic": "...",
+      "topic_source_text": "Exact original text supporting the topic assignment.",
       "strategic_signal": "...",
+      "strategic_signal_source_text": "Exact original text supporting the strategic signal.",
+      "category_source_text": "Exact original text supporting the category assignment.",
       "time_horizon": "short-term | medium-term | long-term | unclear",
       "document_type": "annual_report",
       "reporting_year": "2025",
@@ -209,7 +214,10 @@ Text:
       "category": "finance",
       "secondary_categories": ["risk"],
       "topic": "Sugar segment profitability collapse",
+      "topic_source_text": "Sugar revenue was £2,054m in 2025 and adjusted operating profit was £(2)m, compared with revenue of £2,328m and adjusted operating profit of £213m in 2024.",
       "strategic_signal": "ABF Sugar's profitability deteriorated sharply in 2025, moving from a positive adjusted operating profit in 2024 to a small adjusted operating loss in 2025.",
+      "strategic_signal_source_text": "Adjusted operating (loss)/profit £(2)m ... 2024: £213m",
+      "category_source_text": "Sugar revenue was £2,054m ... adjusted operating profit was £(2)m",
       "time_horizon": "short-term",
       "document_type": "annual_report",
       "reporting_year": "2025",
@@ -404,7 +412,9 @@ Validation rules:
 4. Check whether source_document, source_page and source_text are present.
 5. Identify unsupported claims, over-interpretations or missing evidence.
 6. Do not correct the records directly unless the correction is obvious from the source text.
-7. Return JSON only.
+7. Create a final human-review payload record that an analyst can inspect before database publication.
+8. The final human-review payload must preserve the original source text and clearly separate source-supported facts from business interpretation.
+9. Return JSON only.
 
 Output schema:
 {
@@ -414,6 +424,27 @@ Output schema:
   ],
   "indicator_validation": [
     {"indicator_id": "...", "schema_status": "passed | failed", "evidence_status": "supported | unsupported", "numeric_value_status": "passed | failed", "recommended_human_action": "confirm | edit | reject", "validation_comment": "..."}
+  ],
+  "human_review_payload_records": [
+    {
+      "review_record_id": "...",
+      "event_id": "...",
+      "company": "...",
+      "category": "...",
+      "secondary_categories": ["..."],
+      "event_type": "...",
+      "event_title": "...",
+      "event_summary": "...",
+      "business_interpretation": "...",
+      "fiscal_period_for_dashboard": "...",
+      "source_document": "...",
+      "source_page": "...",
+      "source_text": "Exact original source text used as evidence.",
+      "validation_status": "pending_human_review",
+      "review_question": "...",
+      "recommended_human_action": "confirm | edit | reject",
+      "requires_human_review": true
+    }
   ]
 }
 
@@ -444,6 +475,27 @@ Indicator records:
   "indicator_validation": [
     {"indicator_id": "ABF2025_IND_001", "schema_status": "passed", "evidence_status": "supported", "numeric_value_status": "passed", "recommended_human_action": "confirm", "validation_comment": "The revenue value is explicitly stated in the source text."},
     {"indicator_id": "ABF2025_IND_002", "schema_status": "passed", "evidence_status": "supported", "numeric_value_status": "passed", "recommended_human_action": "confirm", "validation_comment": "The adjusted operating loss is explicitly stated as £(2)m."}
+  ],
+  "human_review_payload_records": [
+    {
+      "review_record_id": "HR_ABF2025_001",
+      "event_id": "ABF2025_EVT_001",
+      "company": "ABF Sugar",
+      "category": "finance",
+      "secondary_categories": ["risk"],
+      "event_type": "financial_performance_warning",
+      "event_title": "ABF Sugar profitability deteriorated sharply in 2025",
+      "event_summary": "ABF Sugar's adjusted operating profit decreased from £213m in 2024 to a £2m adjusted operating loss in 2025.",
+      "business_interpretation": "For Nordzucker, this is a peer warning signal because even a large sugar business can experience rapid margin deterioration under adverse market conditions.",
+      "fiscal_period_for_dashboard": "2024/25",
+      "source_document": "ABF Annual Report 2025",
+      "source_page": "44",
+      "source_text": "Sugar revenue was £2,054m in 2025 and adjusted operating profit was £(2)m, compared with revenue of £2,328m and adjusted operating profit of £213m in 2024.",
+      "validation_status": "pending_human_review",
+      "review_question": "Does the evidence support the event summary and extracted numeric values?",
+      "recommended_human_action": "confirm",
+      "requires_human_review": true
+    }
   ]
 }"""
     },
@@ -569,6 +621,104 @@ def prompt_card(item):
     )
 
 
+def _json_to_pretty(value):
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False, indent=2)
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if value is None:
+        return ""
+    return str(value)
+
+
+def _extract_review_records(data):
+    if isinstance(data, list):
+        return data
+    if not isinstance(data, dict):
+        return []
+
+    for key in ["human_review_payload_records", "review_payload_records", "human_review_payload"]:
+        value = data.get(key)
+        if isinstance(value, list):
+            return value
+        if isinstance(value, dict):
+            return [value]
+
+    # Fallback: allow the output of Prompt 3 to be previewed as a human-review-ready record.
+    event_records = data.get("event_records")
+    if isinstance(event_records, list) and event_records:
+        return event_records
+    return [data] if any(k in data for k in ["event_id", "event_title", "event_summary", "source_text"]) else []
+
+
+def _record_to_table_rows(record):
+    source = record.get("source_document", "")
+    if record.get("source_page"):
+        source = f"{source}, p. {record.get('source_page')}" if source else f"p. {record.get('source_page')}"
+
+    fields = [
+        ("Review record ID", record.get("review_record_id", "")),
+        ("Event ID", record.get("event_id", "")),
+        ("Company", record.get("company", "")),
+        ("Category", record.get("category", "")),
+        ("Secondary categories", record.get("secondary_categories", "")),
+        ("Event type", record.get("event_type", "")),
+        ("Event title", record.get("event_title", "")),
+        ("Event summary", record.get("event_summary", "")),
+        ("Business interpretation", record.get("business_interpretation", "")),
+        ("Fiscal period", record.get("fiscal_period_for_dashboard", "")),
+        ("Source", source),
+        ("Evidence / source text", record.get("source_text", "")),
+        ("Validation status", record.get("validation_status", "")),
+        ("Review question", record.get("review_question", "")),
+        ("Recommended human action", record.get("recommended_human_action", "")),
+        ("Requires human review", record.get("requires_human_review", "")),
+    ]
+    return [html.Tr([html.Th(label), html.Td(_json_to_pretty(value))]) for label, value in fields if value not in ["", [], None]]
+
+
+def final_output_card():
+    return dbc.AccordionItem(
+        [
+            dbc.Alert(
+                [
+                    html.Strong("Purpose: "),
+                    "Paste the final JSON from Prompt 4. The app extracts the human-review payload and renders it as a presentation-friendly table. "
+                    "This represents the data passed to Human Verification before verified records are saved to the database.",
+                ],
+                color="success",
+                className="py-2",
+            ),
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.Div("Final JSON", className="section-label"),
+                            dcc.Textarea(
+                                id="pt-final-json-input",
+                                value=PROMPT_CHAINS[-1]["output"],
+                                className="prompt-test-final-json-input",
+                                spellCheck=False,
+                            ),
+                        ],
+                        md=6,
+                    ),
+                    dbc.Col(
+                        [
+                            html.Div("Human Review table preview", className="section-label"),
+                            html.Div(id="pt-final-output-preview"),
+                        ],
+                        md=6,
+                    ),
+                ],
+                className="g-3",
+            ),
+        ],
+        title="Final output preview: Human Review Payload table",
+        item_id="final-output-preview",
+    )
+
+
 def tutorial_modal():
     return dbc.Modal(
         [
@@ -629,7 +779,7 @@ def layout():
                 html.P("Prompt 2 creates strategic evidence chunks. Prompt 3 converts them into dashboard-ready event and indicator records. Prompt 4 checks source support, schema validity and human-review readiness.", className="home-card-text"),
             ]), className="home-card"), md=6),
         ], className="chart-row"),
-        dbc.Accordion([prompt_card(item) for item in PROMPT_CHAINS], start_collapsed=True, always_open=True, className="prompt-test-accordion"),
+        dbc.Accordion([prompt_card(item) for item in PROMPT_CHAINS] + [final_output_card()], start_collapsed=True, always_open=True, className="prompt-test-accordion"),
     ])
 
 
@@ -640,6 +790,39 @@ def download_sample_pdf(n_clicks):
     if not SAMPLE_PDF_PATH.exists():
         return dash.no_update
     return dcc.send_file(str(SAMPLE_PDF_PATH), filename=DEFAULT_FILE)
+
+
+@callback(Output("pt-final-output-preview", "children"), Input("pt-final-json-input", "value"))
+def render_final_output_preview(value):
+    if not value or not str(value).strip():
+        return dbc.Alert("Paste the final JSON from Prompt 4 to render the Human Review table.", color="secondary", className="py-2")
+    try:
+        data = json.loads(value)
+    except Exception as exc:
+        return dbc.Alert(f"JSON could not be parsed: {exc}", color="warning", className="py-2")
+
+    records = _extract_review_records(data)
+    if not records:
+        return dbc.Alert("No human_review_payload_records or event-like record was found in the pasted JSON.", color="warning", className="py-2")
+
+    record = records[0]
+    return html.Div(
+        [
+            dbc.Alert(
+                [html.Strong("Preview record: "), record.get("event_title") or record.get("event_id") or "Human-review-ready record"],
+                color="light",
+                className="py-2 mb-2",
+            ),
+            dbc.Table(
+                html.Tbody(_record_to_table_rows(record)),
+                bordered=True,
+                hover=True,
+                size="sm",
+                responsive=True,
+                className="prompt-test-final-table",
+            ),
+        ]
+    )
 
 
 @callback(
