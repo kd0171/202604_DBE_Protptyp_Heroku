@@ -19,470 +19,9 @@ SAMPLE_PDF_CANDIDATES = [
 ]
 SAMPLE_PDF_PATH = next((path for path in SAMPLE_PDF_CANDIDATES if path.exists()), SAMPLE_PDF_CANDIDATES[0])
 
-DEMO_SOURCE_EXCERPT = """ABF Annual Report 2025 demo source excerpt for the prompt chain.
+FORMAT_GUIDANCE = """These prompts are intentionally general. They do not contain ABF Annual Report source excerpts. For a live demo, copy the relevant text from the sample PDF and paste it into the input area requested by the prompt. The Desired output column shows an example of the expected JSON shape and business meaning, not preloaded source input."""
 
-[Report page 3 - Our operating businesses]
-Sugar ABF Sugar produces a range of sugar and other products from sugar cane and sugar beet in Africa, the UK and Spain. Revenue £2,054m | 11% (2024: £2,328m). Adjusted operating (loss)/profit £(2)m (2024: £213m).
-
-[Report page 35 - Operating review - Sugar]
-Sugar sales declined 10% and the segment had an adjusted operating loss of £2m, excluding Vivergo, due to low European sugar prices. In the UK and Spain, sales and profitability declined significantly in 2025 as a result of persistently low European sugar prices and a high cost of beet for the 2023/24 campaign. In our Spanish business, Azucarera, where the cost base has been structurally too high, we have completed restructuring in our northern beet operations to reduce our footprint from three beet facilities to one. We will continue to reduce costs and improve efficiency in our operations. In 2025, we made the decision to close our Vivergo bioethanol plant. This followed the UK Government's decision not to provide the regulatory and financial solution required for Vivergo to operate on a consistently profitable basis. Our Vivergo bioethanol plant had sales of £134m and an adjusted operating loss of £36m in 2025. As a result of the plant's closure, the financial results of Vivergo are within 'disposed and closed operations' and not within the Sugar segment.
-
-[Report page 36 - Operating review - Sugar]
-A two-phase factory debottlenecking programme is being invested in, with resulting operational efficiency improvements enabling 20% more cane to be processed and increasing total sugar production by 47,000 tonnes annually over the next five years. These investments are already improving average cane yields which are expected to further increase from 95 to 108 tonnes per hectare over the next five years. The capital investment programme is enhancing reliability and efficiencies across both agricultural and factory operations and will underpin the long-term growth of our Eswatini business.
-
-[Report page 37 - ESG at Sugar]
-ABF Sugar Scope 1 and 2 GHG emissions (market-based) decreased by 9% compared to last year and by 23% against its 2018 baseline. These reductions were achieved by continuous improvements to production efficiency, investing in new technology, innovating to use less energy, and fuel-switching to lower-emission sources. In 2025, 60% of total energy consumption came from renewable sources, primarily bagasse, the fibrous by-product of sugar cane crushing. British Sugar's decarbonisation strategy has continued, with projects this year focusing on energy efficiency, steam reduction, renewable resources and fuel switching. The energy reduction project at Bury St Edmunds was delivered at pace. Commissioned in September 2025, it will cut CO2e emissions from the site by 19,500 tonnes per year. At Wissington, construction is now underway on a substantial steam drying project which aims to achieve a reduction of 50,000 tonnes of CO2e per year from 2026.
-
-[Report page 38 - Co-products in Africa]
-In Tanzania, demand for potable alcohol (ethanol from molasses) is twice the local supply. A new distillery is being constructed to double Kilombero's production for the domestic market, with an additional 14 million litres per year of high-quality ethanol forecast to be produced at the site. The expansion investment totals £48.2m and also includes a new fertilizer plant. In Eswatini, energy efficiencies resulting from investment in operations have enabled the export of approximately 55GWh of power annually to the national grid, creating a steady revenue stream.
-
-[Report page 44 - Financial review]
-The segmental summary reports Sugar revenue of £2,054m in 2025 and £2,328m in 2024. It reports Sugar adjusted operating profit of £(2)m in 2025 and £213m in 2024. Group adjusted operating profit decreased to £1,734m, reflecting lower profitability in Sugar. Operating profit for the Group was £1,483m, after charging exceptional items of £188m, the majority of which are non-cash impairment charges in Sugar.
-"""
-
-DEMO_CHUNKS_JSON = """{
-  "chunks": [
-    {
-      "chunk_id": "abf_2025_finance_001",
-      "company": "ABF Sugar",
-      "parent_company": "Associated British Foods plc",
-      "scope": "ABF Sugar",
-      "category": "finance",
-      "secondary_categories": ["risk"],
-      "topic": "Sugar segment profitability collapse",
-      "topic_source_text": "Revenue £2,054m | 11% (2024: £2,328m). Adjusted operating (loss)/profit £(2)m (2024: £213m).",
-      "strategic_signal": "ABF Sugar moved from strong profitability in 2024 to an adjusted operating loss in 2025, signalling severe margin pressure in the European sugar cycle.",
-      "strategic_signal_source_text": "Sugar sales declined 10% and the segment had an adjusted operating loss of £2m, excluding Vivergo, due to low European sugar prices.",
-      "category_source_text": "The source explicitly reports revenue, adjusted operating loss/profit and year-on-year financial change for Sugar.",
-      "time_horizon": "short-term",
-      "document_type": "annual_report",
-      "reporting_year": "2025",
-      "fiscal_period_for_dashboard": "2024/25",
-      "source_page": "35 / 44",
-      "source_section": "Operating review - Sugar; Financial review",
-      "content": "Sugar revenue was £2,054m in 2025, down from £2,328m in 2024. Adjusted operating profit deteriorated from £213m in 2024 to an adjusted operating loss of £2m in 2025.",
-      "numeric_values": [
-        {"metric": "sugar_revenue", "value": 2054, "unit": "GBP million", "period": "2025", "source_text": "Revenue £2,054m"},
-        {"metric": "sugar_revenue_previous_year", "value": 2328, "unit": "GBP million", "period": "2024", "source_text": "2024: £2,328m"},
-        {"metric": "adjusted_operating_profit", "value": -2, "unit": "GBP million", "period": "2025", "source_text": "Adjusted operating (loss)/profit £(2)m"},
-        {"metric": "adjusted_operating_profit_previous_year", "value": 213, "unit": "GBP million", "period": "2024", "source_text": "2024: £213m"}
-      ],
-      "dashboard_relevance": ["finance", "risk"],
-      "confidence": 0.97,
-      "limitations": "The causal explanation is limited to low European sugar prices and beet cost pressure explicitly stated in the source."
-    },
-    {
-      "chunk_id": "abf_2025_operations_azucarera_001",
-      "company": "ABF Sugar",
-      "parent_company": "Associated British Foods plc",
-      "scope": "ABF Sugar",
-      "category": "operations",
-      "secondary_categories": ["risk", "investment"],
-      "topic": "Azucarera restructuring in Spain",
-      "topic_source_text": "In our Spanish business, Azucarera, where the cost base has been structurally too high, we have completed restructuring in our northern beet operations to reduce our footprint from three beet facilities to one.",
-      "strategic_signal": "ABF Sugar is reducing structurally high-cost Spanish beet processing capacity to protect profitability under low-price conditions.",
-      "strategic_signal_source_text": "Sales and profitability declined significantly in 2025 as a result of persistently low European sugar prices and a high cost of beet ... Azucarera ... reduce our footprint from three beet facilities to one.",
-      "category_source_text": "The source describes factory footprint reduction and operational restructuring.",
-      "time_horizon": "short-term",
-      "document_type": "annual_report",
-      "reporting_year": "2025",
-      "fiscal_period_for_dashboard": "2024/25",
-      "source_page": "35",
-      "source_section": "Operating review - Sugar",
-      "content": "Azucarera completed restructuring in northern beet operations, reducing the footprint from three beet facilities to one because the cost base was structurally too high under low European sugar prices and high beet costs.",
-      "numeric_values": [
-        {"metric": "beet_facilities_before", "value": 3, "unit": "facilities", "period": "2025", "source_text": "from three beet facilities"},
-        {"metric": "beet_facilities_after", "value": 1, "unit": "facility", "period": "2025", "source_text": "to one"}
-      ],
-      "dashboard_relevance": ["operations", "risk", "investment"],
-      "confidence": 0.95,
-      "limitations": "The excerpt does not specify the full implementation timetable beyond completion of the northern beet restructuring."
-    },
-    {
-      "chunk_id": "abf_2025_regulation_vivergo_001",
-      "company": "ABF Sugar",
-      "parent_company": "Associated British Foods plc",
-      "scope": "ABF Sugar",
-      "category": "regulation",
-      "secondary_categories": ["risk", "operations"],
-      "topic": "Vivergo bioethanol closure due to regulatory and financial uncertainty",
-      "topic_source_text": "In 2025, we made the decision to close our Vivergo bioethanol plant. This followed the UK Government's decision not to provide the regulatory and financial solution required for Vivergo to operate on a consistently profitable basis.",
-      "strategic_signal": "ABF Sugar is exposed to regulatory decisions in bioethanol markets, and adverse policy conditions can trigger plant closure despite prior investment.",
-      "strategic_signal_source_text": "The UK Government's decision not to provide the regulatory and financial solution required for Vivergo to operate on a consistently profitable basis.",
-      "category_source_text": "The source explicitly links the closure to government regulatory and financial support conditions.",
-      "time_horizon": "short-term",
-      "document_type": "annual_report",
-      "reporting_year": "2025",
-      "fiscal_period_for_dashboard": "2024/25",
-      "source_page": "35",
-      "source_section": "Operating review - Sugar",
-      "content": "ABF decided to close Vivergo after the UK Government did not provide the regulatory and financial solution needed for consistent profitability. Vivergo had sales of £134m and an adjusted operating loss of £36m in 2025.",
-      "numeric_values": [
-        {"metric": "vivergo_sales", "value": 134, "unit": "GBP million", "period": "2025", "source_text": "Vivergo bioethanol plant had sales of £134m"},
-        {"metric": "vivergo_adjusted_operating_loss", "value": -36, "unit": "GBP million", "period": "2025", "source_text": "an adjusted operating loss of £36m in 2025"}
-      ],
-      "dashboard_relevance": ["regulation", "risk", "operations"],
-      "confidence": 0.96,
-      "limitations": "The excerpt provides ABF's stated view of the regulatory cause; external policy assessment is outside the source."
-    },
-    {
-      "chunk_id": "abf_2025_investment_ubombo_001",
-      "company": "ABF Sugar",
-      "parent_company": "Associated British Foods plc",
-      "scope": "ABF Sugar",
-      "category": "investment",
-      "secondary_categories": ["operations"],
-      "topic": "Ubombo Sugar capacity and efficiency investment",
-      "topic_source_text": "A two-phase factory debottlenecking programme is being invested in ... enabling 20% more cane to be processed and increasing total sugar production by 47,000 tonnes annually over the next five years.",
-      "strategic_signal": "ABF Sugar is investing in African capacity and agricultural efficiency to support long-term growth outside the pressured European market.",
-      "strategic_signal_source_text": "Driving sustainable long-term growth in Africa is key to ABF Sugar's strategy ... investing in our African markets to enhance production capacity, operational effectiveness and agricultural practices.",
-      "category_source_text": "The source describes an investment programme, capacity increase and operational efficiency improvements.",
-      "time_horizon": "medium-term",
-      "document_type": "annual_report",
-      "reporting_year": "2025",
-      "fiscal_period_for_dashboard": "2024/25",
-      "source_page": "36",
-      "source_section": "Operating review - Sugar",
-      "content": "A two-phase debottlenecking programme at Ubombo Sugar in Eswatini is expected to enable 20% more cane processing and increase sugar production by 47,000 tonnes annually over the next five years.",
-      "numeric_values": [
-        {"metric": "additional_cane_processing", "value": 20, "unit": "percent", "period": "next five years", "source_text": "enabling 20% more cane to be processed"},
-        {"metric": "additional_sugar_production", "value": 47000, "unit": "tonnes annually", "period": "next five years", "source_text": "increasing total sugar production by 47,000 tonnes annually"}
-      ],
-      "dashboard_relevance": ["investment", "operations"],
-      "confidence": 0.95,
-      "limitations": "Investment amount for this specific debottlenecking programme is not provided in the excerpt."
-    },
-    {
-      "chunk_id": "abf_2025_sustainability_british_sugar_001",
-      "company": "ABF Sugar",
-      "parent_company": "Associated British Foods plc",
-      "scope": "ABF Sugar",
-      "category": "sustainability",
-      "secondary_categories": ["investment", "operations"],
-      "topic": "British Sugar decarbonisation projects",
-      "topic_source_text": "British Sugar's decarbonisation strategy has continued, with projects this year focusing on energy efficiency, steam reduction, renewable resources and fuel switching.",
-      "strategic_signal": "ABF Sugar is reducing emissions through factory-level energy efficiency and steam reduction projects with quantified annual CO2e savings.",
-      "strategic_signal_source_text": "The energy reduction project at Bury St Edmunds ... will cut CO2e emissions from the site by 19,500 tonnes per year. At Wissington ... aims to achieve a reduction of 50,000 tonnes of CO2e per year from 2026.",
-      "category_source_text": "The source reports GHG emissions reduction and decarbonisation projects.",
-      "time_horizon": "medium-term",
-      "document_type": "annual_report",
-      "reporting_year": "2025",
-      "fiscal_period_for_dashboard": "2024/25",
-      "source_page": "37",
-      "source_section": "ESG at Sugar",
-      "content": "ABF Sugar Scope 1 and 2 market-based emissions decreased by 9% year-on-year and 23% against the 2018 baseline. British Sugar projects at Bury St Edmunds and Wissington are expected to cut 19,500 and 50,000 tonnes of CO2e per year respectively.",
-      "numeric_values": [
-        {"metric": "scope_1_2_emissions_reduction_yoy", "value": 9, "unit": "percent", "period": "2025", "source_text": "decreased by 9% compared to last year"},
-        {"metric": "scope_1_2_emissions_reduction_vs_baseline", "value": 23, "unit": "percent", "period": "against 2018 baseline", "source_text": "by 23% against its 2018 baseline"},
-        {"metric": "bury_st_edmunds_co2e_reduction", "value": 19500, "unit": "tonnes CO2e per year", "period": "from September 2025", "source_text": "will cut CO2e emissions from the site by 19,500 tonnes per year"},
-        {"metric": "wissington_co2e_reduction_target", "value": 50000, "unit": "tonnes CO2e per year", "period": "from 2026", "source_text": "aims to achieve a reduction of 50,000 tonnes of CO2e per year from 2026"}
-      ],
-      "dashboard_relevance": ["sustainability", "investment", "operations"],
-      "confidence": 0.96,
-      "limitations": "The excerpt does not provide project costs or payback periods."
-    }
-  ]
-}"""
-
-DEMO_EVENTS_JSON = """{
-  "event_records": [
-    {
-      "event_id": "ABF2025_EVT_001",
-      "company": "ABF Sugar",
-      "parent_company": "Associated British Foods plc",
-      "category": "finance",
-      "secondary_categories": ["risk"],
-      "event_type": "financial_performance_warning",
-      "event_title": "ABF Sugar profitability deteriorated sharply in 2025",
-      "event_summary": "ABF Sugar revenue declined to £2,054m and adjusted operating profit fell from £213m in 2024 to a £2m adjusted operating loss in 2025.",
-      "business_interpretation": "For Nordzucker, this is a peer warning signal that European sugar price pressure and beet cost exposure can rapidly turn a profitable sugar segment into a loss-making one.",
-      "time_horizon": "short-term",
-      "fiscal_period_for_dashboard": "2024/25",
-      "source_document": "ABF Annual Report 2025",
-      "source_page": "35 / 44",
-      "source_section": "Operating review - Sugar; Financial review",
-      "source_text": "Revenue £2,054m | 11% (2024: £2,328m). Adjusted operating (loss)/profit £(2)m (2024: £213m). Sugar sales declined 10% and the segment had an adjusted operating loss of £2m, excluding Vivergo, due to low European sugar prices.",
-      "linked_chunk_ids": ["abf_2025_finance_001"],
-      "extraction_confidence": 0.97,
-      "requires_human_review": true
-    },
-    {
-      "event_id": "ABF2025_EVT_002",
-      "company": "ABF Sugar",
-      "parent_company": "Associated British Foods plc",
-      "category": "operations",
-      "secondary_categories": ["risk", "investment"],
-      "event_type": "restructuring",
-      "event_title": "Azucarera reduced northern beet operations from three facilities to one",
-      "event_summary": "ABF Sugar completed restructuring in Azucarera's northern beet operations, reducing the footprint from three beet facilities to one.",
-      "business_interpretation": "The restructuring shows how peers may respond to low-price sugar cycles by closing or consolidating structurally high-cost beet processing capacity.",
-      "time_horizon": "short-term",
-      "fiscal_period_for_dashboard": "2024/25",
-      "source_document": "ABF Annual Report 2025",
-      "source_page": "35",
-      "source_section": "Operating review - Sugar",
-      "source_text": "In our Spanish business, Azucarera, where the cost base has been structurally too high, we have completed restructuring in our northern beet operations to reduce our footprint from three beet facilities to one.",
-      "linked_chunk_ids": ["abf_2025_operations_azucarera_001"],
-      "extraction_confidence": 0.95,
-      "requires_human_review": true
-    },
-    {
-      "event_id": "ABF2025_EVT_003",
-      "company": "ABF Sugar",
-      "parent_company": "Associated British Foods plc",
-      "category": "regulation",
-      "secondary_categories": ["risk", "operations"],
-      "event_type": "plant_closure",
-      "event_title": "Vivergo bioethanol plant closed after regulatory and financial support did not materialise",
-      "event_summary": "ABF Sugar decided to close Vivergo after the UK Government did not provide the regulatory and financial solution required for consistent profitability.",
-      "business_interpretation": "This record highlights regulatory exposure in bioethanol and co-product markets, where policy design can affect the viability of adjacent sugar-industry assets.",
-      "time_horizon": "short-term",
-      "fiscal_period_for_dashboard": "2024/25",
-      "source_document": "ABF Annual Report 2025",
-      "source_page": "35",
-      "source_section": "Operating review - Sugar",
-      "source_text": "In 2025, we made the decision to close our Vivergo bioethanol plant. This followed the UK Government's decision not to provide the regulatory and financial solution required for Vivergo to operate on a consistently profitable basis.",
-      "linked_chunk_ids": ["abf_2025_regulation_vivergo_001"],
-      "extraction_confidence": 0.96,
-      "requires_human_review": true
-    },
-    {
-      "event_id": "ABF2025_EVT_004",
-      "company": "ABF Sugar",
-      "parent_company": "Associated British Foods plc",
-      "category": "investment",
-      "secondary_categories": ["operations"],
-      "event_type": "capacity_expansion",
-      "event_title": "Ubombo Sugar investment expected to add 47,000 tonnes of annual sugar production",
-      "event_summary": "A two-phase debottlenecking programme at Ubombo Sugar is expected to enable 20% more cane processing and add 47,000 tonnes of annual sugar production over the next five years.",
-      "business_interpretation": "ABF Sugar is using African capacity investments to build growth outside the pressured European beet market.",
-      "time_horizon": "medium-term",
-      "fiscal_period_for_dashboard": "2024/25",
-      "source_document": "ABF Annual Report 2025",
-      "source_page": "36",
-      "source_section": "Operating review - Sugar",
-      "source_text": "A two-phase factory debottlenecking programme is being invested in ... enabling 20% more cane to be processed and increasing total sugar production by 47,000 tonnes annually over the next five years.",
-      "linked_chunk_ids": ["abf_2025_investment_ubombo_001"],
-      "extraction_confidence": 0.95,
-      "requires_human_review": true
-    },
-    {
-      "event_id": "ABF2025_EVT_005",
-      "company": "ABF Sugar",
-      "parent_company": "Associated British Foods plc",
-      "category": "sustainability",
-      "secondary_categories": ["investment", "operations"],
-      "event_type": "decarbonisation_project",
-      "event_title": "British Sugar projects target quantified CO2e reductions",
-      "event_summary": "British Sugar's Bury St Edmunds energy reduction project will cut 19,500 tonnes of CO2e per year, while the Wissington steam drying project aims to reduce 50,000 tonnes of CO2e per year from 2026.",
-      "business_interpretation": "The record gives Nordzucker a concrete peer benchmark for factory-level decarbonisation projects with quantified annual emissions-reduction effects.",
-      "time_horizon": "medium-term",
-      "fiscal_period_for_dashboard": "2024/25",
-      "source_document": "ABF Annual Report 2025",
-      "source_page": "37",
-      "source_section": "ESG at Sugar",
-      "source_text": "The energy reduction project at Bury St Edmunds ... will cut CO2e emissions from the site by 19,500 tonnes per year. At Wissington ... aims to achieve a reduction of 50,000 tonnes of CO2e per year from 2026.",
-      "linked_chunk_ids": ["abf_2025_sustainability_british_sugar_001"],
-      "extraction_confidence": 0.96,
-      "requires_human_review": true
-    }
-  ],
-  "indicator_records": [
-    {"indicator_id": "ABF2025_IND_001", "company": "ABF Sugar", "metric": "sugar_revenue", "value": 2054, "unit": "GBP million", "period": "2025", "category": "finance", "source_document": "ABF Annual Report 2025", "source_page": "35 / 44", "source_text": "Revenue £2,054m", "linked_chunk_id": "abf_2025_finance_001", "requires_human_review": true},
-    {"indicator_id": "ABF2025_IND_002", "company": "ABF Sugar", "metric": "adjusted_operating_profit", "value": -2, "unit": "GBP million", "period": "2025", "category": "finance", "source_document": "ABF Annual Report 2025", "source_page": "35 / 44", "source_text": "Adjusted operating (loss)/profit £(2)m", "linked_chunk_id": "abf_2025_finance_001", "requires_human_review": true},
-    {"indicator_id": "ABF2025_IND_003", "company": "ABF Sugar", "metric": "additional_sugar_production_ubombo", "value": 47000, "unit": "tonnes annually", "period": "next five years", "category": "investment", "source_document": "ABF Annual Report 2025", "source_page": "36", "source_text": "increasing total sugar production by 47,000 tonnes annually", "linked_chunk_id": "abf_2025_investment_ubombo_001", "requires_human_review": true},
-    {"indicator_id": "ABF2025_IND_004", "company": "ABF Sugar", "metric": "bury_st_edmunds_co2e_reduction", "value": 19500, "unit": "tonnes CO2e per year", "period": "from September 2025", "category": "sustainability", "source_document": "ABF Annual Report 2025", "source_page": "37", "source_text": "will cut CO2e emissions from the site by 19,500 tonnes per year", "linked_chunk_id": "abf_2025_sustainability_british_sugar_001", "requires_human_review": true},
-    {"indicator_id": "ABF2025_IND_005", "company": "ABF Sugar", "metric": "wissington_co2e_reduction_target", "value": 50000, "unit": "tonnes CO2e per year", "period": "from 2026", "category": "sustainability", "source_document": "ABF Annual Report 2025", "source_page": "37", "source_text": "aims to achieve a reduction of 50,000 tonnes of CO2e per year from 2026", "linked_chunk_id": "abf_2025_sustainability_british_sugar_001", "requires_human_review": true}
-  ]
-}"""
-
-DEMO_FINAL_JSON = """{
-  "validation_summary": {
-    "records_checked": 10,
-    "records_supported": 10,
-    "records_requiring_revision": 0,
-    "overall_status": "passed_with_interpretation_notes"
-  },
-  "event_validation": [
-    {
-      "event_id": "ABF2025_EVT_001",
-      "schema_status": "passed",
-      "evidence_status": "supported",
-      "taxonomy_status": "valid",
-      "numeric_values_status": "passed",
-      "supported_fields": ["company", "category", "event_type", "event_summary", "source_page", "source_text"],
-      "unsupported_fields": [],
-      "potential_overinterpretations": ["The Nordzucker implication is an analyst interpretation and must remain in business_interpretation."],
-      "recommended_human_action": "confirm",
-      "validation_comment": "The revenue and adjusted operating profit figures are explicitly supported by the source text."
-    }
-  ],
-  "indicator_validation": [
-    {
-      "indicator_id": "ABF2025_IND_001",
-      "schema_status": "passed",
-      "evidence_status": "supported",
-      "numeric_value_status": "passed",
-      "recommended_human_action": "confirm",
-      "validation_comment": "The revenue value is explicitly present in the source text."
-    }
-  ],
-  "human_review_payload_records": [
-    {
-      "review_record_id": "HR_ABF2025_001",
-      "event_id": "ABF2025_EVT_001",
-      "company": "ABF Sugar",
-      "category": "finance",
-      "secondary_categories": ["risk"],
-      "event_type": "financial_performance_warning",
-      "event_title": "ABF Sugar profitability deteriorated sharply in 2025",
-      "event_summary": "ABF Sugar revenue declined to £2,054m and adjusted operating profit fell from £213m in 2024 to a £2m adjusted operating loss in 2025.",
-      "business_interpretation": "For Nordzucker, this is a peer warning signal that European sugar price pressure and beet cost exposure can rapidly turn a profitable sugar segment into a loss-making one.",
-      "fiscal_period_for_dashboard": "2024/25",
-      "source_document": "ABF Annual Report 2025",
-      "source_page": "35 / 44",
-      "source_text": "Revenue £2,054m | 11% (2024: £2,328m). Adjusted operating (loss)/profit £(2)m (2024: £213m). Sugar sales declined 10% and the segment had an adjusted operating loss of £2m, excluding Vivergo, due to low European sugar prices.",
-      "validation_status": "pending_human_review",
-      "review_question": "Does the evidence support the extracted revenue, profit change and finance/risk classification?",
-      "recommended_human_action": "confirm",
-      "requires_human_review": true
-    },
-    {
-      "review_record_id": "HR_ABF2025_002",
-      "event_id": "ABF2025_EVT_002",
-      "company": "ABF Sugar",
-      "category": "operations",
-      "secondary_categories": ["risk", "investment"],
-      "event_type": "restructuring",
-      "event_title": "Azucarera reduced northern beet operations from three facilities to one",
-      "event_summary": "ABF Sugar completed restructuring in Azucarera's northern beet operations, reducing the footprint from three beet facilities to one.",
-      "business_interpretation": "The restructuring shows how peers may respond to low-price sugar cycles by closing or consolidating structurally high-cost beet processing capacity.",
-      "fiscal_period_for_dashboard": "2024/25",
-      "source_document": "ABF Annual Report 2025",
-      "source_page": "35",
-      "source_text": "In our Spanish business, Azucarera, where the cost base has been structurally too high, we have completed restructuring in our northern beet operations to reduce our footprint from three beet facilities to one.",
-      "validation_status": "pending_human_review",
-      "review_question": "Does the source support the restructuring event and the three-to-one facility reduction?",
-      "recommended_human_action": "confirm",
-      "requires_human_review": true
-    },
-    {
-      "review_record_id": "HR_ABF2025_003",
-      "event_id": "ABF2025_EVT_003",
-      "company": "ABF Sugar",
-      "category": "regulation",
-      "secondary_categories": ["risk", "operations"],
-      "event_type": "plant_closure",
-      "event_title": "Vivergo bioethanol plant closed after regulatory and financial support did not materialise",
-      "event_summary": "ABF Sugar decided to close Vivergo after the UK Government did not provide the regulatory and financial solution required for consistent profitability.",
-      "business_interpretation": "This highlights regulatory exposure in bioethanol and co-product markets, where policy design can affect the viability of adjacent sugar-industry assets.",
-      "fiscal_period_for_dashboard": "2024/25",
-      "source_document": "ABF Annual Report 2025",
-      "source_page": "35",
-      "source_text": "In 2025, we made the decision to close our Vivergo bioethanol plant. This followed the UK Government's decision not to provide the regulatory and financial solution required for Vivergo to operate on a consistently profitable basis.",
-      "validation_status": "pending_human_review",
-      "review_question": "Does the evidence support classifying this as a regulation-linked plant closure?",
-      "recommended_human_action": "confirm",
-      "requires_human_review": true
-    },
-    {
-      "review_record_id": "HR_ABF2025_004",
-      "event_id": "ABF2025_EVT_004",
-      "company": "ABF Sugar",
-      "category": "investment",
-      "secondary_categories": ["operations"],
-      "event_type": "capacity_expansion",
-      "event_title": "Ubombo Sugar investment expected to add 47,000 tonnes of annual sugar production",
-      "event_summary": "A two-phase debottlenecking programme at Ubombo Sugar is expected to enable 20% more cane processing and add 47,000 tonnes of annual sugar production over the next five years.",
-      "business_interpretation": "ABF Sugar is using African capacity investments to build growth outside the pressured European beet market.",
-      "fiscal_period_for_dashboard": "2024/25",
-      "source_document": "ABF Annual Report 2025",
-      "source_page": "36",
-      "source_text": "A two-phase factory debottlenecking programme is being invested in ... enabling 20% more cane to be processed and increasing total sugar production by 47,000 tonnes annually over the next five years.",
-      "validation_status": "pending_human_review",
-      "review_question": "Does the source support the capacity expansion metrics and investment classification?",
-      "recommended_human_action": "confirm",
-      "requires_human_review": true
-    },
-    {
-      "review_record_id": "HR_ABF2025_005",
-      "event_id": "ABF2025_EVT_005",
-      "company": "ABF Sugar",
-      "category": "sustainability",
-      "secondary_categories": ["investment", "operations"],
-      "event_type": "decarbonisation_project",
-      "event_title": "British Sugar projects target quantified CO2e reductions",
-      "event_summary": "British Sugar's Bury St Edmunds energy reduction project will cut 19,500 tonnes of CO2e per year, while the Wissington steam drying project aims to reduce 50,000 tonnes of CO2e per year from 2026.",
-      "business_interpretation": "The record gives Nordzucker a concrete peer benchmark for factory-level decarbonisation projects with quantified annual emissions-reduction effects.",
-      "fiscal_period_for_dashboard": "2024/25",
-      "source_document": "ABF Annual Report 2025",
-      "source_page": "37",
-      "source_text": "The energy reduction project at Bury St Edmunds ... will cut CO2e emissions from the site by 19,500 tonnes per year. At Wissington ... aims to achieve a reduction of 50,000 tonnes of CO2e per year from 2026.",
-      "validation_status": "pending_human_review",
-      "review_question": "Does the evidence support the two quantified decarbonisation figures and sustainability classification?",
-      "recommended_human_action": "confirm",
-      "requires_human_review": true
-    }
-  ]
-}"""
-
-PROMPT_CHAINS = [
-    {
-        "step": "1",
-        "title": "Section and scope identification",
-        "subtitle": "Find ABF Sugar source sections and avoid mixing them with unrelated ABF Group businesses.",
-        "pipeline_mapping": "Data Engineering: extract-metadata / parse-pdf",
-        "input_hint": "This prompt is self-contained for the demo. It already includes short ABF Annual Report 2025 source excerpts.",
-        "prompt": f"""You are an analyst supporting a competitive intelligence system for Nordzucker AG.
-
-Task:
-Identify the relevant document scope and source sections for later extraction. The final peer scope is ABF Sugar, not the full ABF Group.
-
-Context:
-- Focal company: Nordzucker AG.
-- Peer document: Associated British Foods plc Annual Report 2025.
-- Relevant peer scope: ABF Sugar segment.
-- Exclude Primark, Grocery, Ingredients and Agriculture unless they provide group-level context for Sugar.
-- Dashboard dimensions: finance, risk, sustainability, operations, products, regulation, investment, market_context.
-
-Rules:
-1. Use only the provided demo source excerpt.
-2. Prefer concrete ABF Sugar sections over broad group-level sections.
-3. Do not output placeholder or missing-data error records.
-4. Return JSON only.
-
-Output schema:
-{{
-  "document_metadata": {{
-    "document_id": "...",
-    "company": "...",
-    "peer_scope": "...",
-    "document_type": "...",
-    "reporting_year": "...",
-    "fiscal_period_for_dashboard": "...",
-    "language": "...",
-    "confidence": 0.0
-  }},
-  "relevant_sections": [
-    {{
-      "section_id": "...",
-      "section_title": "...",
-      "source_page_or_page_range": "...",
-      "scope": "ABF Sugar | ABF Group with Sugar segment data | unclear",
-      "relevant_dashboard_dimensions": ["finance", "risk"],
-      "reason_for_relevance": "...",
-      "information_types_expected": ["revenue", "operating profit", "market conditions"]
-    }}
-  ],
-  "excluded_sections": [
-    {{"section_title": "...", "reason_for_exclusion": "..."}}
-  ],
-  "scope_warnings": ["..."]
-}}
-
-DEMO_SOURCE_EXCERPT:
-{DEMO_SOURCE_EXCERPT}""",
-        "output": """{
+DESIRED_SCOPE_OUTPUT = """{
   "document_metadata": {
     "document_id": "abf_annual_report_2025",
     "company": "Associated British Foods plc",
@@ -500,8 +39,8 @@ DEMO_SOURCE_EXCERPT:
       "source_page_or_page_range": "34-39",
       "scope": "ABF Sugar",
       "relevant_dashboard_dimensions": ["finance", "risk", "operations", "investment", "sustainability", "regulation"],
-      "reason_for_relevance": "This is the core ABF Sugar section. It contains segment revenue, profit deterioration, Azucarera restructuring, Vivergo closure, African capacity investment and British Sugar decarbonisation projects.",
-      "information_types_expected": ["revenue", "adjusted operating loss", "market price pressure", "restructuring", "plant closure", "capacity expansion", "decarbonisation"]
+      "reason_for_relevance": "This section contains ABF Sugar segment performance, market pressure, restructuring, plant closure, capacity investment and decarbonisation information.",
+      "information_types_expected": ["revenue", "adjusted operating profit/loss", "market price pressure", "restructuring", "plant closure", "capacity expansion", "decarbonisation"]
     },
     {
       "section_id": "financial_review_segmental_summary",
@@ -509,41 +48,256 @@ DEMO_SOURCE_EXCERPT:
       "source_page_or_page_range": "44",
       "scope": "ABF Group with Sugar segment data",
       "relevant_dashboard_dimensions": ["finance", "risk"],
-      "reason_for_relevance": "This section confirms Sugar segment revenue and adjusted operating profit for 2025 and 2024, enabling dashboard-ready financial indicators.",
-      "information_types_expected": ["segment revenue", "adjusted operating profit", "year-on-year change"]
+      "reason_for_relevance": "This section confirms segment-level Sugar revenue and adjusted operating profit/loss figures.",
+      "information_types_expected": ["segment revenue", "adjusted operating profit/loss", "year-on-year change"]
     }
   ],
   "excluded_sections": [
     {"section_title": "Retail / Primark", "reason_for_exclusion": "Not part of the sugar-industry peer comparison."},
-    {"section_title": "Grocery", "reason_for_exclusion": "Mostly unrelated branded food businesses; only Silver Spoon may be relevant if explicitly linked to Sugar."},
-    {"section_title": "Ingredients", "reason_for_exclusion": "Yeast and enzymes segment, not ABF Sugar."},
-    {"section_title": "Agriculture", "reason_for_exclusion": "AB Agri is not the sugar peer segment."}
+    {"section_title": "Grocery", "reason_for_exclusion": "Mostly unrelated branded food businesses unless explicitly linked to sugar."}
   ],
   "scope_warnings": [
-    "ABF Group figures must not be treated as ABF Sugar figures unless the source explicitly reports Sugar segment data.",
-    "Vivergo is linked to ABF Sugar but reported as disposed and closed operations after closure, so the scope should be clearly labelled."
+    "Do not use ABF Group figures as ABF Sugar figures unless the source explicitly reports Sugar segment data.",
+    "Clearly label Vivergo or other closed/disposed operations if they are related to the Sugar segment but reported separately."
   ]
 }"""
+
+DESIRED_CHUNKS_OUTPUT = """{
+  "chunks": [
+    {
+      "chunk_id": "abf_2025_regulation_vivergo_001",
+      "company_name": "ABF Sugar",
+      "business_unit": "Vivergo",
+      "parent_company": "Associated British Foods plc",
+      "scope": "ABF Sugar-related closed operation",
+      "category": "regulation",
+      "secondary_categories": ["risk", "operations"],
+      "topic": "Vivergo bioethanol plant closure",
+      "topic_source_text": "Exact original sentence(s) stating that the Vivergo bioethanol plant was decided to be closed.",
+      "strategic_signal": "The peer is exposed to regulatory and financial support conditions in bioethanol markets; adverse policy conditions can lead to closure of adjacent assets.",
+      "strategic_signal_source_text": "Exact original sentence(s) stating the regulatory / financial reason for the closure.",
+      "category_source_text": "Exact original sentence(s) that justify regulation/risk classification.",
+      "country": "United Kingdom",
+      "city_or_region": "Hull / Humberside",
+      "site_name": "Vivergo bioethanol plant",
+      "product_category": "bioethanol",
+      "target_year": "2025",
+      "status": "closure decided",
+      "time_horizon": "short-term",
+      "document_type": "annual_report",
+      "reporting_year": "2025",
+      "fiscal_period_for_dashboard": "2024/25",
+      "source_page": "35",
+      "source_section": "Operating review - Sugar",
+      "content": "Source-grounded summary of the closure, its regulatory explanation and its relevance for sugar-industry competitive intelligence.",
+      "numeric_values": [
+        {"metric": "vivergo_sales", "value": 134, "unit": "GBP million", "period": "2025", "source_text": "Exact original source text for this number."},
+        {"metric": "vivergo_adjusted_operating_loss", "value": -36, "unit": "GBP million", "period": "2025", "source_text": "Exact original source text for this number."}
+      ],
+      "dashboard_relevance": ["regulation", "risk", "operations"],
+      "confidence": 0.96,
+      "limitations": "The strategic interpretation should be separated from directly stated source facts. External policy assessment is outside the document."
+    }
+  ]
+}"""
+
+DESIRED_EVENTS_OUTPUT = """{
+  "event_records": [
+    {
+      "event_id": "ABF2025_EVT_VIVERGO_001",
+      "company_name": "ABF Sugar",
+      "business_unit": "Vivergo",
+      "parent_company": "Associated British Foods plc",
+      "category": "regulation",
+      "secondary_categories": ["risk", "operations"],
+      "event_type": "bioethanol_plant_closure",
+      "country": "United Kingdom",
+      "city_or_region": "Hull / Humberside",
+      "site_name": "Vivergo bioethanol plant",
+      "product_category": "bioethanol",
+      "target_year": "2025",
+      "status": "closure decided",
+      "event_title": "Vivergo bioethanol plant closure decided in 2025",
+      "event_summary": "ABF Sugar-related Vivergo was decided for closure after required regulatory and financial support did not materialise.",
+      "business_interpretation": "For Nordzucker, this is a regulatory exposure signal for bioethanol and co-product strategies linked to sugar-industry assets.",
+      "time_horizon": "short-term",
+      "fiscal_period_for_dashboard": "2024/25",
+      "source_document": "ABF Annual Report 2025",
+      "source_page": "35",
+      "source_section": "Operating review - Sugar",
+      "source_text": "Exact original source text supporting the closure and regulatory explanation.",
+      "linked_chunk_ids": ["abf_2025_regulation_vivergo_001"],
+      "review_comment": "Check whether the source supports both the closure decision and the regulation-linked interpretation. City/region should remain 'Hull / Humberside' only if supported by the pasted source text.",
+      "extraction_confidence": 0.96,
+      "requires_human_review": true
+    }
+  ],
+  "indicator_records": [
+    {
+      "indicator_id": "ABF2025_IND_VIVERGO_SALES_001",
+      "company_name": "ABF Sugar",
+      "business_unit": "Vivergo",
+      "metric": "vivergo_sales",
+      "value": 134,
+      "unit": "GBP million",
+      "period": "2025",
+      "category": "finance",
+      "source_document": "ABF Annual Report 2025",
+      "source_page": "35",
+      "source_text": "Exact original source text for the sales figure.",
+      "linked_chunk_id": "abf_2025_regulation_vivergo_001",
+      "requires_human_review": true
+    }
+  ]
+}"""
+
+DESIRED_FINAL_OUTPUT = """{
+  "validation_summary": {
+    "records_checked": 2,
+    "records_supported": 2,
+    "records_requiring_revision": 0,
+    "overall_status": "passed_with_interpretation_notes"
+  },
+  "event_validation": [
+    {
+      "event_id": "ABF2025_EVT_VIVERGO_001",
+      "schema_status": "passed",
+      "evidence_status": "supported",
+      "taxonomy_status": "valid",
+      "numeric_values_status": "passed",
+      "supported_fields": ["company_name", "business_unit", "event_type", "country", "site_name", "product_category", "target_year", "status", "source_page", "source_text"],
+      "unsupported_fields": [],
+      "potential_overinterpretations": ["Nordzucker implication is an analyst interpretation and must stay in business_interpretation or review_comment."],
+      "recommended_human_action": "confirm",
+      "validation_comment": "The closure event is source-supported. Human review should check exact location wording and regulatory interpretation."
+    }
+  ],
+  "indicator_validation": [
+    {
+      "indicator_id": "ABF2025_IND_VIVERGO_SALES_001",
+      "schema_status": "passed",
+      "evidence_status": "supported",
+      "numeric_value_status": "passed",
+      "recommended_human_action": "confirm",
+      "validation_comment": "The numeric value is explicitly present in the linked source text."
+    }
+  ],
+  "human_review_payload_records": [
+    {
+      "review_record_id": "HR_ABF2025_VIVERGO_001",
+      "event_id": "ABF2025_EVT_VIVERGO_001",
+      "company_name": "ABF Sugar",
+      "business_unit": "Vivergo",
+      "parent_company": "Associated British Foods plc",
+      "category": "regulation",
+      "secondary_categories": ["risk", "operations"],
+      "event_type": "bioethanol_plant_closure",
+      "country": "United Kingdom",
+      "city_or_region": "Hull / Humberside",
+      "site_name": "Vivergo bioethanol plant",
+      "product_category": "bioethanol",
+      "target_year": "2025",
+      "status": "closure decided",
+      "event_title": "Vivergo bioethanol plant closure decided in 2025",
+      "event_summary": "ABF Sugar-related Vivergo was decided for closure after required regulatory and financial support did not materialise.",
+      "business_interpretation": "For Nordzucker, this is a regulatory exposure signal for bioethanol and co-product strategies linked to sugar-industry assets.",
+      "fiscal_period_for_dashboard": "2024/25",
+      "source_document": "ABF Annual Report 2025",
+      "source_page": "35",
+      "source_text": "Exact original source text supporting the closure and regulatory explanation.",
+      "validation_status": "pending_human_review",
+      "review_question": "Does the evidence support the closure decision, regulation-linked classification, location, product category and target year?",
+      "recommended_human_action": "confirm",
+      "review_comment": "Confirm whether the location should be stored as Hull, Humberside, or both depending on the exact source wording. Keep the Nordzucker implication as interpretation, not as a source fact.",
+      "requires_human_review": true
+    }
+  ]
+}"""
+
+PROMPT_CHAINS = [
+    {
+        "step": "1",
+        "title": "Section and scope identification",
+        "subtitle": "Find source sections and avoid mixing the target business unit with unrelated group businesses.",
+        "pipeline_mapping": "Data Engineering: extract-metadata / parse-pdf",
+        "input_hint": "Paste the PDF table of contents, segment overview and relevant section excerpts. For ABF, use the Sugar operating review and Financial Review segmental summary.",
+        "prompt": """You are an analyst supporting a competitive intelligence system for a focal company.
+
+Task:
+Identify the relevant document scope and source sections for later extraction.
+
+Configuration:
+- Focal company: [FOCAL_COMPANY]
+- Peer company / document owner: [PEER_COMPANY]
+- Relevant peer scope or business unit: [PEER_SCOPE]
+- Document title and year: [DOCUMENT_TITLE_AND_YEAR]
+- Dashboard dimensions: finance, risk, sustainability, operations, products, regulation, investment, market_context
+
+Input to paste below:
+- Table of contents if available
+- Segment/business overview
+- Any section excerpts that appear relevant for competitive intelligence
+
+Rules:
+1. Use only the pasted source text.
+2. Prefer sections that are directly about the relevant peer scope/business unit.
+3. Do not treat group-level figures as segment-level figures unless the source explicitly states segment-level data.
+4. Exclude unrelated business segments unless they provide necessary context for the relevant peer scope.
+5. Do not output placeholder or missing-data events. If the pasted source text is insufficient, return relevant_sections: [] and explain what input is missing in scope_warnings.
+6. Return JSON only.
+
+Output schema:
+{
+  "document_metadata": {
+    "document_id": "...",
+    "company": "...",
+    "peer_scope": "...",
+    "document_type": "annual_report | sustainability_report | investor_presentation | other",
+    "reporting_year": "...",
+    "fiscal_period_for_dashboard": "...",
+    "language": "...",
+    "confidence": 0.0
+  },
+  "relevant_sections": [
+    {
+      "section_id": "...",
+      "section_title": "...",
+      "source_page_or_page_range": "...",
+      "scope": "target business unit | group with segment data | unclear",
+      "relevant_dashboard_dimensions": ["finance", "risk"],
+      "reason_for_relevance": "...",
+      "information_types_expected": ["revenue", "operating profit", "market conditions"]
+    }
+  ],
+  "excluded_sections": [
+    {"section_title": "...", "reason_for_exclusion": "..."}
+  ],
+  "scope_warnings": ["..."]
+}
+
+SOURCE_TEXT:
+[PASTE SOURCE TEXT HERE]""",
+        "output": DESIRED_SCOPE_OUTPUT,
     },
     {
         "step": "2",
         "title": "Strategic evidence chunk generation",
         "subtitle": "Create source-grounded semantic chunks that preserve original evidence and can be used for retrieval and extraction.",
         "pipeline_mapping": "Data Engineering: chunk-document / select-passages",
-        "input_hint": "The prompt includes demo source excerpts. For a true chain, replace the demo excerpt with source text selected in Prompt 1.",
-        "prompt": f"""You are an information extraction assistant for a competitive intelligence system in the European sugar industry.
+        "input_hint": "Paste the source excerpts selected in Prompt 1. For ABF, paste the exact Vivergo, Sugar performance, Azucarera, Ubombo or British Sugar paragraphs you want to extract from.",
+        "prompt": """You are an information extraction assistant for a competitive intelligence system.
 
 Task:
-Convert the ABF Sugar source excerpt into strategic evidence chunks.
+Convert the pasted source text into strategic evidence chunks.
 
 Definition:
 A strategic evidence chunk is not a fixed-length text split. It is a self-contained, source-grounded semantic unit that can later be used for retrieval, evidence display and structured event extraction.
 
-Focal company:
-- Nordzucker AG
-
-Peer scope:
-- ABF Sugar segment of Associated British Foods plc
+Configuration:
+- Focal company: [FOCAL_COMPANY]
+- Peer company / document owner: [PEER_COMPANY]
+- Relevant peer scope or business unit: [PEER_SCOPE]
+- Document title and year: [DOCUMENT_TITLE_AND_YEAR]
 
 Allowed dashboard categories:
 - finance
@@ -556,31 +310,25 @@ Allowed dashboard categories:
 - market_context
 
 Important rules:
-1. Use only the DEMO_SOURCE_EXCERPT below.
-2. Do not invent facts, values, pages or causes.
-3. Do not output placeholder or missing-data error records.
-4. Create only meaningful chunks for competitive intelligence.
-5. Each chunk must include the original source text supporting category, topic and strategic_signal.
+1. Use only the pasted source text.
+2. Do not invent facts, values, pages, sites, cities, countries or causes.
+3. If a field is not supported by the source, use "unknown" and explain the limitation.
+4. Do not output placeholder or missing-data event records.
+5. Each chunk must include original source text supporting category, topic and strategic_signal.
 6. Include numeric values only if they are explicitly stated.
 7. Separate source-supported facts from strategic interpretation.
-8. Return JSON only.
-
-Required output:
-Create chunks for at least these topics if supported by the excerpt:
-- Sugar revenue and adjusted operating profit deterioration.
-- Azucarera restructuring in Spain.
-- Vivergo closure and regulatory exposure.
-- Ubombo Sugar capacity expansion in Eswatini.
-- British Sugar decarbonisation projects.
+8. If the text describes a closure of a bioethanol plant, extract the following fields if supported: company_name, business_unit, event topic, country, city_or_region, site_name, product_category, target_year, status.
+9. Return JSON only.
 
 Output schema:
-{{
+{
   "chunks": [
-    {{
+    {
       "chunk_id": "...",
-      "company": "ABF Sugar",
-      "parent_company": "Associated British Foods plc",
-      "scope": "ABF Sugar | ABF Group | unclear",
+      "company_name": "...",
+      "business_unit": "...",
+      "parent_company": "...",
+      "scope": "target business unit | related closed operation | group | unclear",
       "category": "finance | risk | sustainability | operations | products | regulation | investment | market_context",
       "secondary_categories": ["risk"],
       "topic": "...",
@@ -588,34 +336,43 @@ Output schema:
       "strategic_signal": "...",
       "strategic_signal_source_text": "Exact original text supporting the strategic signal.",
       "category_source_text": "Exact original text supporting the category assignment.",
+      "country": "...",
+      "city_or_region": "...",
+      "site_name": "...",
+      "product_category": "...",
+      "target_year": "...",
+      "status": "...",
       "time_horizon": "short-term | medium-term | long-term | unclear",
-      "document_type": "annual_report",
-      "reporting_year": "2025",
-      "fiscal_period_for_dashboard": "2024/25",
+      "document_type": "annual_report | sustainability_report | investor_presentation | other",
+      "reporting_year": "...",
+      "fiscal_period_for_dashboard": "...",
       "source_page": "...",
       "source_section": "...",
       "content": "...",
       "numeric_values": [
-        {{"metric": "...", "value": 0, "unit": "...", "period": "...", "source_text": "..."}}
+        {"metric": "...", "value": 0, "unit": "...", "period": "...", "source_text": "..."}
       ],
       "dashboard_relevance": ["finance", "risk"],
       "confidence": 0.0,
       "limitations": "..."
-    }}
+    }
   ]
-}}
+}
 
-DEMO_SOURCE_EXCERPT:
-{DEMO_SOURCE_EXCERPT}""",
-        "output": DEMO_CHUNKS_JSON
+SOURCE_TEXT:
+[PASTE SOURCE TEXT HERE]
+
+OPTIONAL_OUTPUT_FROM_PROMPT_1:
+[PASTE OUTPUT FROM PROMPT 1 HERE]""",
+        "output": DESIRED_CHUNKS_OUTPUT,
     },
     {
         "step": "3",
         "title": "Event and indicator record extraction",
         "subtitle": "Convert evidence chunks into dashboard-ready records that can be reviewed and stored.",
         "pipeline_mapping": "Data Engineering: extract-events-json",
-        "input_hint": "The prompt includes demo chunks. For a true chain, replace DEMO_INPUT_CHUNKS with the JSON produced by Prompt 2.",
-        "prompt": f"""You are converting strategic evidence chunks into dashboard-ready event and indicator records for a Nordzucker competitive intelligence dashboard.
+        "input_hint": "Paste the JSON chunks produced by Prompt 2. Do not paste the original PDF text unless it is needed as fallback evidence.",
+        "prompt": """You are converting strategic evidence chunks into dashboard-ready event and indicator records for a competitive intelligence dashboard.
 
 Input:
 Strategic evidence chunks from the previous prompt chain step.
@@ -644,6 +401,7 @@ Allowed event types:
 - margin_change
 - restructuring
 - plant_closure
+- bioethanol_plant_closure
 - capacity_expansion
 - decarbonisation_project
 - product_portfolio_signal
@@ -662,18 +420,26 @@ Rules:
 6. Every record must include evidence text.
 7. Every record must have "requires_human_review": true.
 8. Keep business_interpretation separate from source-supported facts.
-9. Return JSON only.
+9. If a chunk describes a bioethanol plant closure, prefer event_type = "bioethanol_plant_closure" and preserve company_name, business_unit, country, city_or_region, site_name, product_category, target_year and status.
+10. Return JSON only.
 
 Output schema:
-{{
+{
   "event_records": [
-    {{
+    {
       "event_id": "...",
-      "company": "...",
+      "company_name": "...",
+      "business_unit": "...",
       "parent_company": "...",
       "category": "...",
       "secondary_categories": ["..."],
       "event_type": "...",
+      "country": "...",
+      "city_or_region": "...",
+      "site_name": "...",
+      "product_category": "...",
+      "target_year": "...",
+      "status": "...",
       "event_title": "...",
       "event_summary": "...",
       "business_interpretation": "...",
@@ -684,14 +450,16 @@ Output schema:
       "source_section": "...",
       "source_text": "...",
       "linked_chunk_ids": ["..."],
+      "review_comment": "...",
       "extraction_confidence": 0.0,
       "requires_human_review": true
-    }}
+    }
   ],
   "indicator_records": [
-    {{
+    {
       "indicator_id": "...",
-      "company": "...",
+      "company_name": "...",
+      "business_unit": "...",
       "metric": "...",
       "value": 0,
       "unit": "...",
@@ -702,26 +470,26 @@ Output schema:
       "source_text": "...",
       "linked_chunk_id": "...",
       "requires_human_review": true
-    }}
+    }
   ]
-}}
+}
 
-DEMO_INPUT_CHUNKS:
-{DEMO_CHUNKS_JSON}""",
-        "output": DEMO_EVENTS_JSON
+STRATEGIC_EVIDENCE_CHUNKS:
+[PASTE OUTPUT FROM PROMPT 2 HERE]""",
+        "output": DESIRED_EVENTS_OUTPUT,
     },
     {
         "step": "4",
         "title": "Evidence, schema and business logic verification",
         "subtitle": "Check source support and generate the final Human Review payload.",
         "pipeline_mapping": "Data Engineering: link-evidence / schema-precheck / human-review payload preparation",
-        "input_hint": "The prompt includes demo chunks and event records. For a true chain, replace them with Prompt 2 and Prompt 3 outputs.",
-        "prompt": f"""You are a validation assistant for a competitive intelligence extraction pipeline.
+        "input_hint": "Paste the chunks from Prompt 2 and the event/indicator records from Prompt 3. The final output should be human_review_payload_records.",
+        "prompt": """You are a validation assistant for a competitive intelligence extraction pipeline.
 
 Task:
 Verify whether the extracted event and indicator records are supported by the strategic evidence chunks and whether they follow the required schema and taxonomy. Then create the final Human Review payload records.
 
-The Human Review payload is the final presentation output of this prompt chain. It should be understandable as business data: one row per reviewable event, with company, category, event title, summary, source evidence and recommended human action.
+The Human Review payload is the final presentation output of this prompt chain. It should be understandable as business data: one row per reviewable event, with company, business unit, event type, location/site, product category, target year, status, source evidence and review comment.
 
 Allowed categories:
 - finance
@@ -739,6 +507,7 @@ Allowed event types:
 - margin_change
 - restructuring
 - plant_closure
+- bioethanol_plant_closure
 - capacity_expansion
 - decarbonisation_project
 - product_portfolio_signal
@@ -755,27 +524,36 @@ Validation rules:
 4. Check whether source_document, source_page and source_text are present.
 5. Identify unsupported claims or over-interpretations.
 6. Do not create missing-data or placeholder review records.
-7. Create final human_review_payload_records only for meaningful, source-supported ABF Sugar events.
-8. The final payload must preserve the original source text and clearly separate source-supported facts from business interpretation.
-9. Return JSON only.
+7. Create final human_review_payload_records only for meaningful, source-supported events.
+8. Preserve original source text and clearly separate source-supported facts from business interpretation.
+9. For a bioethanol closure record, the Human Review payload should include company_name, business_unit, event_type, country, city_or_region, site_name, product_category, target_year, status and review_comment when supported.
+10. Return JSON only.
 
 Output schema:
-{{
-  "validation_summary": {{"records_checked": 0, "records_supported": 0, "records_requiring_revision": 0, "overall_status": "passed | passed_with_interpretation_notes | failed"}},
+{
+  "validation_summary": {"records_checked": 0, "records_supported": 0, "records_requiring_revision": 0, "overall_status": "passed | passed_with_interpretation_notes | failed"},
   "event_validation": [
-    {{"event_id": "...", "schema_status": "passed | failed", "evidence_status": "supported | partially_supported | unsupported", "taxonomy_status": "valid | invalid", "numeric_values_status": "passed | failed | not_applicable", "supported_fields": ["..."], "unsupported_fields": ["..."], "potential_overinterpretations": ["..."], "recommended_human_action": "confirm | edit | reject", "validation_comment": "..."}}
+    {"event_id": "...", "schema_status": "passed | failed", "evidence_status": "supported | partially_supported | unsupported", "taxonomy_status": "valid | invalid", "numeric_values_status": "passed | failed | not_applicable", "supported_fields": ["..."], "unsupported_fields": ["..."], "potential_overinterpretations": ["..."], "recommended_human_action": "confirm | edit | reject", "validation_comment": "..."}
   ],
   "indicator_validation": [
-    {{"indicator_id": "...", "schema_status": "passed | failed", "evidence_status": "supported | unsupported", "numeric_value_status": "passed | failed", "recommended_human_action": "confirm | edit | reject", "validation_comment": "..."}}
+    {"indicator_id": "...", "schema_status": "passed | failed", "evidence_status": "supported | unsupported", "numeric_value_status": "passed | failed", "recommended_human_action": "confirm | edit | reject", "validation_comment": "..."}
   ],
   "human_review_payload_records": [
-    {{
+    {
       "review_record_id": "...",
       "event_id": "...",
-      "company": "...",
+      "company_name": "...",
+      "business_unit": "...",
+      "parent_company": "...",
       "category": "...",
       "secondary_categories": ["..."],
       "event_type": "...",
+      "country": "...",
+      "city_or_region": "...",
+      "site_name": "...",
+      "product_category": "...",
+      "target_year": "...",
+      "status": "...",
       "event_title": "...",
       "event_summary": "...",
       "business_interpretation": "...",
@@ -786,20 +564,20 @@ Output schema:
       "validation_status": "pending_human_review",
       "review_question": "...",
       "recommended_human_action": "confirm | edit | reject",
+      "review_comment": "...",
       "requires_human_review": true
-    }}
+    }
   ]
-}}
+}
 
-DEMO_INPUT_CHUNKS:
-{DEMO_CHUNKS_JSON}
+STRATEGIC_EVIDENCE_CHUNKS:
+[PASTE OUTPUT FROM PROMPT 2 HERE]
 
-DEMO_INPUT_EVENT_AND_INDICATOR_RECORDS:
-{DEMO_EVENTS_JSON}""",
-        "output": DEMO_FINAL_JSON
+EVENT_AND_INDICATOR_RECORDS:
+[PASTE OUTPUT FROM PROMPT 3 HERE]""",
+        "output": DESIRED_FINAL_OUTPUT,
     },
 ]
-
 
 TUTORIAL_STEPS = [
     {
@@ -923,15 +701,19 @@ def prompt_card(item):
 
 FINAL_TABLE_COLUMNS = [
     ("review_record_id", "Review ID"),
-    ("company", "Company"),
-    ("category", "Category"),
+    ("event_id", "Event ID"),
+    ("company_name", "Company"),
+    ("business_unit", "Business unit"),
     ("event_type", "Event type"),
+    ("country", "Country"),
+    ("city_or_region", "City / region"),
+    ("site_name", "Site"),
+    ("product_category", "Product"),
+    ("target_year", "Target year"),
+    ("status", "Status"),
     ("event_title", "Event title"),
-    ("event_summary", "Event summary"),
     ("source_page", "Page"),
-    ("source_text", "Evidence"),
-    ("validation_status", "Status"),
-    ("recommended_human_action", "Action"),
+    ("review_comment", "Review comment"),
 ]
 
 
@@ -1015,7 +797,7 @@ def final_output_card():
                     dbc.Col(
                         [
                             html.Div("Human Review table preview", className="section-label"),
-                            html.Div(id="pt-final-output-preview"),
+                            html.Div(id="pt-final-output-preview", className="prompt-test-final-preview-wrap"),
                         ],
                         md=7,
                     ),
@@ -1071,7 +853,7 @@ def layout():
                     dbc.Col(dbc.Button("Back to Data Engineering", href="/engineering/upload-pipeline", color="secondary", outline=True, size="sm"), md=2, className="text-md-end mt-2 mt-md-0"),
                 ], className="align-items-center g-2"),
                 html.Hr(className="compact-divider"),
-                dbc.Alert([html.Strong("Purpose of this page. "), "This page does not run a live LLM backend. It displays the prompt chain that can be manually executed in ChatGPT or recorded for the presentation. The desired outputs show the expected JSON shape for the ABF Annual Report 2025 sample."], color="primary", className="py-2 mb-0"),
+                dbc.Alert([html.Strong("Purpose of this page. "), "This page does not run a live LLM backend. It displays a manually testable prompt chain. ", FORMAT_GUIDANCE], color="primary", className="py-2 mb-0"),
             ]),
             className="compact-engineering-top",
         ),
@@ -1079,7 +861,7 @@ def layout():
             dbc.Col(dbc.Card(dbc.CardBody([
                 html.Div("Recommended demo material", className="section-label"),
                 html.H4("ABF Annual Report 2025", className="prompt-test-card-title"),
-                html.P("Use the ABF Sugar operating review and Financial Review segment table as source excerpts. This produces a compact but robust example: ABF Sugar revenue, operating profit deterioration, strategic risk signal and evidence verification.", className="home-card-text"),
+                html.P("Use the Sample PDF and copy only the relevant paragraphs into ChatGPT: for example the ABF Sugar operating review, the Vivergo closure paragraph, and the Financial Review segmental summary. The prompts themselves remain general and do not contain source excerpts.", className="home-card-text"),
             ]), className="home-card"), md=6),
             dbc.Col(dbc.Card(dbc.CardBody([
                 html.Div("Output logic", className="section-label"),
