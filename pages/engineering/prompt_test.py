@@ -19,7 +19,7 @@ SAMPLE_PDF_CANDIDATES = [
 ]
 SAMPLE_PDF_PATH = next((path for path in SAMPLE_PDF_CANDIDATES if path.exists()), SAMPLE_PDF_CANDIDATES[0])
 
-FORMAT_GUIDANCE = """These prompts are intentionally general. They do not contain ABF Annual Report source excerpts. For a live demo, copy relevant source text from the sample PDF and paste it into the requested input area. The four visible prompts compress the full Data Engineering pipeline into a short manual prompt-chain demo: Source Intake + Text Preparation → RAG-oriented evidence chunks → IE event extraction and evidence linking → schema pre-check and Human Review payload. The Desired output column is an illustrative output-format example, not preloaded source input."""
+FORMAT_GUIDANCE = """These prompts are intentionally general and do not contain ABF Annual Report source excerpts. The demo configuration is already filled for Nordzucker as focal company and ABF Sugar as peer scope, so the user only needs to paste relevant page-labelled source text from the sample PDF into ChatGPT. The four prompts compress the full Data Engineering pipeline into a short manual prompt-chain demo: Source Intake + Text Preparation → RAG-oriented evidence chunks → IE event extraction and evidence linking → schema pre-check and Human Review payload. The Desired output column is an illustrative output-format example, not preloaded source input."""
 
 DESIRED_SCOPE_OUTPUT = """{
   "document_metadata": {
@@ -252,36 +252,35 @@ PROMPT_CHAINS = [
         "title": "Source intake, metadata and text preparation",
         "subtitle": "Compresses upload-pdf, register-source, extract-metadata, parse-pdf and extract-clean-text into one demo prompt.",
         "pipeline_mapping": "Source Intake: upload-pdf / register-source / extract-metadata; Text Preparation: parse-pdf / extract-clean-text",
-        "input_hint": "Paste document metadata, table of contents and page-labelled text excerpts. For a short demo, include the target business section and the page number from the PDF.",
-        "prompt": """You are preparing source material for an LLM-assisted competitive intelligence pipeline.
+        "input_hint": "Paste page-labelled source excerpts. For a short demo, include the ABF Sugar / Vivergo paragraph and the source page number from the PDF.",
+        "prompt": """You are preparing an LLM-assisted competitive intelligence extraction demo for Nordzucker AG.
 
-This prompt compresses the following pipeline jobs for demo purposes:
+This prompt corresponds to the early Data Engineering pipeline stages:
 - Source Intake: upload-pdf, register-source, extract-metadata
 - Text Preparation: parse-pdf, extract-clean-text
 
-Task:
-Create a source registry, identify the document scope, and prepare a page-referenced extraction plan. This is not yet event extraction. It only decides which text blocks should be used by the next prompt.
+The actual PDF upload and PDF parsing are not executed in this manual Prompt Test page. Instead, assume that a user has copied page-labelled text from the official report into SOURCE_TEXT below.
 
-Configuration:
-- Focal company: [FOCAL_COMPANY]
-- Peer company / document owner: [PEER_COMPANY]
-- Relevant peer scope or business unit: [PEER_SCOPE]
-- Document title and year: [DOCUMENT_TITLE_AND_YEAR]
+Default demo configuration:
+- Focal company: Nordzucker AG
+- Peer company / document owner: Associated British Foods plc
+- Relevant peer scope: ABF Sugar and ABF Sugar-related operations, including British Sugar, Azucarera, Illovo Sugar and Vivergo when the source text links them to the Sugar business
+- Document type: annual_report
+- Document title: ABF Annual Report 2025
 - Dashboard dimensions: finance, risk, sustainability, operations, products, regulation, investment, market_context
 
-Input to paste below:
-- Document title / filename if available
-- Table of contents if available
-- Page-labelled text excerpts from the relevant business unit or segment
+Task:
+Create a source registry, identify the relevant business scope, and prepare a page-referenced extraction plan. This is not the final event extraction step. It decides which source sections and text blocks should be used by the next prompt.
 
-Rules:
-1. Use only the pasted source text.
-2. Preserve page references and original wording requirements for later evidence checking.
-3. Prefer sections directly about the relevant peer scope or business unit.
-4. Do not treat group-level figures as business-unit figures unless the text explicitly reports business-unit data.
-5. Do not create events in this step.
-6. Do not create placeholder or missing-data outputs. If the pasted source text is insufficient, return relevant_sections: [] and explain what input is missing.
-7. Return JSON only.
+Instructions:
+1. Use only SOURCE_TEXT and the default demo configuration above.
+2. Preserve page references and original wording requirements for later Human Review.
+3. Prefer sections directly related to ABF Sugar or ABF Sugar-related operations.
+4. Do not use ABF Group-level figures as ABF Sugar figures unless the text explicitly reports Sugar segment data.
+5. If the text discusses Vivergo, treat it as ABF Sugar-related only when the text explicitly links it to Sugar, ABF Sugar, disposed/closed Sugar operations, British Sugar, or the Sugar division.
+6. Do not create event records in this step.
+7. Do not create missing-data events. If SOURCE_TEXT is empty, return a short JSON object with "requires_source_text": true and explain that page-labelled source text must be pasted before extraction.
+8. Return JSON only.
 
 Output schema:
 {
@@ -289,28 +288,28 @@ Output schema:
     "document_id": "...",
     "company": "...",
     "peer_scope": "...",
-    "document_type": "annual_report | sustainability_report | investor_presentation | other",
+    "document_type": "annual_report",
     "reporting_year": "...",
     "fiscal_period_for_dashboard": "...",
     "language": "...",
     "confidence": 0.0
   },
   "source_intake": {
-    "upload_pdf": "registered | insufficient_input",
+    "upload_pdf": "conceptually registered in the manual demo",
     "register_source": "...",
     "extract_metadata": "..."
   },
   "text_preparation": {
-    "parse_pdf": "...",
+    "parse_pdf": "page-labelled source text prepared from pasted excerpt",
     "extract_clean_text": "...",
-    "clean_text_requirements": ["preserve original wording", "preserve source_page"]
+    "clean_text_requirements": ["preserve original wording", "preserve source_page", "do not rewrite evidence text"]
   },
   "relevant_sections": [
     {
       "section_id": "...",
       "section_title": "...",
       "source_page_or_page_range": "...",
-      "scope": "target business unit | group with segment data | unclear",
+      "scope": "ABF Sugar | ABF Sugar-related operation | ABF Group with segment data | unclear",
       "relevant_dashboard_dimensions": ["finance", "risk"],
       "reason_for_relevance": "...",
       "information_types_expected": ["event", "indicator", "source evidence"]
@@ -319,14 +318,14 @@ Output schema:
   "extraction_targets": [
     {
       "target_name": "...",
-      "expected_fields": ["company_name", "event_type", "site_name", "target_year", "status", "extracted_text"]
+      "expected_fields": ["company_name", "business_unit", "event_type", "country", "city_or_region", "site_name", "product_category", "target_year", "status", "extracted_text"]
     }
   ],
   "scope_warnings": ["..."]
 }
 
 SOURCE_TEXT:
-[PASTE SOURCE TEXT HERE]""",
+Paste page-labelled source text here. For the ABF demo, use relevant excerpts from the Sugar operating review, Vivergo closure passage, Financial Review segmental summary, or Sugar ESG/investment pages.""",
         "output": DESIRED_SCOPE_OUTPUT,
     },
     {
@@ -335,25 +334,22 @@ SOURCE_TEXT:
         "subtitle": "Compresses chunk-document, create-embeddings, store-vector-db and prepare-retrieval into one demo prompt.",
         "pipeline_mapping": "RAG branch: chunk-document / create-embeddings / store-vector-db / prepare-retrieval",
         "input_hint": "Paste the cleaned, page-labelled source text selected in Prompt 1. The prompt creates source-grounded chunks and metadata that could later be embedded or retrieved.",
-        "prompt": """You are preparing retrieval-oriented strategic evidence chunks for a competitive intelligence pipeline.
+        "prompt": """You are preparing retrieval-oriented strategic evidence chunks for an LLM-assisted competitive intelligence pipeline.
 
-This prompt compresses the following RAG branch jobs for demo purposes:
+This prompt corresponds to the RAG branch of the Data Engineering pipeline:
 - chunk-document
 - create-embeddings
 - store-vector-db
 - prepare-retrieval
 
-Task:
-Convert the pasted source text into strategic evidence chunks. Each chunk must preserve the exact original passage that will later be shown to a human reviewer.
+The Prompt Test page does not actually create embeddings or a vector database. Instead, this prompt prepares strategic evidence chunks and retrieval metadata that would be suitable for those steps.
 
-Definition:
-A strategic evidence chunk is not a fixed-length text split. It is a self-contained, source-grounded semantic unit that can later be used for retrieval, evidence display and structured event extraction.
-
-Configuration:
-- Focal company: [FOCAL_COMPANY]
-- Peer company / document owner: [PEER_COMPANY]
-- Relevant peer scope or business unit: [PEER_SCOPE]
-- Document title and year: [DOCUMENT_TITLE_AND_YEAR]
+Default demo configuration:
+- Focal company: Nordzucker AG
+- Peer company / document owner: Associated British Foods plc
+- Relevant peer scope: ABF Sugar and ABF Sugar-related operations, including British Sugar, Azucarera, Illovo Sugar and Vivergo when supported by the source text
+- Document type: annual_report
+- Document title: ABF Annual Report 2025
 
 Allowed dashboard categories:
 - finance
@@ -365,17 +361,26 @@ Allowed dashboard categories:
 - investment
 - market_context
 
-Important rules:
-1. Use only the pasted source text.
+Task:
+Convert the pasted source text into strategic evidence chunks. Each chunk must be a self-contained, source-grounded semantic unit that can later be used for retrieval, evidence display, event extraction and Human Review.
+
+High-priority extraction targets for the ABF Sugar demo, if present in SOURCE_TEXT:
+- Sugar segment profitability deterioration
+- Azucarera restructuring or footprint reduction
+- Vivergo bioethanol plant closure
+- Ubombo or Tanzania capacity expansion / co-product investment
+- British Sugar decarbonisation or emissions reduction projects
+
+Instructions:
+1. Use only SOURCE_TEXT and, optionally, OUTPUT_FROM_PROMPT_1.
 2. Do not invent facts, values, pages, sites, cities, countries or causes.
-3. If a field is not supported by the source, use "unknown" and explain the limitation.
-4. Do not output placeholder or missing-data event records.
-5. Each chunk must include extracted_text: an exact original source passage copied verbatim from the document.
-6. Also include topic_source_text, strategic_signal_source_text and category_source_text as exact original evidence snippets.
-7. Include numeric values only if they are explicitly stated.
-8. Separate source-supported facts from strategic interpretation.
-9. If the text describes a bioethanol plant closure, extract the following fields if supported: company_name, business_unit, event topic, country, city_or_region, site_name, product_category, target_year, status.
-10. Return JSON only.
+3. Do not create placeholder records. If the source is insufficient, return an empty chunks list and a concise "missing_input" explanation.
+4. Each chunk must include extracted_text: the exact original source passage copied verbatim from the pasted source text.
+5. Also include topic_source_text, strategic_signal_source_text and category_source_text as exact original evidence snippets.
+6. Include numeric values only if they are explicitly stated in the pasted source text.
+7. Separate source-supported facts from strategic interpretation.
+8. If the source describes a bioethanol plant closure, extract these fields when supported: company_name, business_unit, country, city_or_region, site_name, product_category, target_year and status. If the location is partly inferred from a known site name but not stated in the pasted text, mark the uncertain part as "needs_review" rather than inventing it.
+9. Return JSON only.
 
 Output schema:
 {
@@ -391,7 +396,7 @@ Output schema:
       "company_name": "...",
       "business_unit": "...",
       "parent_company": "...",
-      "scope": "target business unit | related closed operation | group | unclear",
+      "scope": "ABF Sugar | ABF Sugar-related closed operation | ABF Group with segment data | unclear",
       "category": "finance | risk | sustainability | operations | products | regulation | investment | market_context",
       "secondary_categories": ["risk"],
       "topic": "...",
@@ -407,31 +412,32 @@ Output schema:
       "target_year": "...",
       "status": "...",
       "time_horizon": "short-term | medium-term | long-term | unclear",
-      "document_type": "annual_report | sustainability_report | investor_presentation | other",
+      "document_type": "annual_report",
       "reporting_year": "...",
       "fiscal_period_for_dashboard": "...",
       "source_page": "...",
       "source_section": "...",
-      "content": "...",
+      "content": "Concise source-grounded summary plus clearly labelled strategic interpretation.",
       "numeric_values": [
-        {"metric": "...", "value": 0, "unit": "...", "period": "...", "source_text": "..."}
+        {"metric": "...", "value": 0, "unit": "...", "period": "...", "source_text": "Exact original text supporting this number."}
       ],
       "retrieval_metadata": {
-        "embedding_text": "...",
+        "embedding_text": "company + business_unit + topic + strategic_signal + extracted_text",
         "retrieval_keys": ["..."]
       },
       "dashboard_relevance": ["finance", "risk"],
       "confidence": 0.0,
       "limitations": "..."
     }
-  ]
+  ],
+  "missing_input": null
 }
 
 SOURCE_TEXT:
-[PASTE SOURCE TEXT HERE]
+Paste the selected page-labelled source text here.
 
-OPTIONAL_OUTPUT_FROM_PROMPT_1:
-[PASTE OUTPUT FROM PROMPT 1 HERE]""",
+OUTPUT_FROM_PROMPT_1_OPTIONAL:
+Paste the output from Prompt 1 here if available. If not available, proceed using SOURCE_TEXT only.""",
         "output": DESIRED_CHUNKS_OUTPUT,
     },
     {
@@ -440,15 +446,15 @@ OPTIONAL_OUTPUT_FROM_PROMPT_1:
         "subtitle": "Compresses select-passages, extract-events-json and link-evidence into one demo prompt.",
         "pipeline_mapping": "IE branch: select-passages / extract-events-json / link-evidence",
         "input_hint": "Paste the JSON chunks produced by Prompt 2. The output should be meaningful event and indicator records with exact extracted_text evidence.",
-        "prompt": """You are converting strategic evidence chunks into dashboard-ready event and indicator records for a competitive intelligence dashboard.
+        "prompt": """You are converting strategic evidence chunks into dashboard-ready event and indicator records for a Nordzucker competitive intelligence dashboard.
 
-This prompt compresses the following IE branch jobs for demo purposes:
+This prompt corresponds to the IE branch of the Data Engineering pipeline:
 - select-passages
 - extract-events-json
 - link-evidence
 
 Input:
-Strategic evidence chunks from the previous prompt-chain step.
+Use the strategic evidence chunks created by the previous prompt.
 
 Task:
 Select the chunks that are relevant for competitive intelligence, convert them into structured event and indicator records, and link every important field back to exact evidence text.
@@ -485,17 +491,18 @@ Allowed event types:
 - risk_signal
 - other
 
-Rules:
-1. Use only information contained in the input chunks.
-2. Do not create missing-data or placeholder events.
+Instructions:
+1. Use only information contained in STRATEGIC_EVIDENCE_CHUNKS.
+2. Do not create missing-data, placeholder or pipeline-error events.
 3. Preserve source_page, source_section, extracted_text and source_text.
-4. Create event records for business-relevant developments.
-5. Create indicator records for numeric metrics.
+4. Create event records for business-relevant developments only.
+5. Create indicator records for numeric metrics only when numbers are explicitly stated in the chunks.
 6. Every event record must include extracted_text.
 7. Every record must have "requires_human_review": true.
 8. Keep business_interpretation separate from source-supported facts.
-9. If a chunk describes a bioethanol plant closure, prefer event_type = "bioethanol_plant_closure" and preserve company_name, business_unit, country, city_or_region, site_name, product_category, target_year and status.
-10. Return JSON only.
+9. If a chunk describes a bioethanol plant closure, use event_type = "bioethanol_plant_closure" and preserve company_name, business_unit, country, city_or_region, site_name, product_category, target_year and status. If city_or_region is not directly supported, mark it as "needs_review" and explain in review_comment.
+10. The output should be close to what the Human Review screen needs, but still unverified.
+11. Return JSON only.
 
 Output schema:
 {
@@ -530,7 +537,11 @@ Output schema:
       "extracted_text": "Exact original source passage used for Human Review.",
       "source_text": "Shorter exact evidence sentence if useful.",
       "linked_chunk_ids": ["..."],
-      "field_evidence_map": {"field_name": "exact supporting source text"},
+      "field_evidence_map": {
+        "event_type": "exact source text supporting this field",
+        "status": "exact source text supporting this field",
+        "site_name": "exact source text supporting this field"
+      },
       "review_comment": "...",
       "extraction_confidence": 0.0,
       "requires_human_review": true
@@ -556,7 +567,7 @@ Output schema:
 }
 
 STRATEGIC_EVIDENCE_CHUNKS:
-[PASTE OUTPUT FROM PROMPT 2 HERE]""",
+Paste the full JSON output from Prompt 2 here.""",
         "output": DESIRED_EVENTS_OUTPUT,
     },
     {
@@ -565,16 +576,16 @@ STRATEGIC_EVIDENCE_CHUNKS:
         "subtitle": "Compresses schema-precheck and human-review preparation into the final prompt-chain output.",
         "pipeline_mapping": "Human Review & Validation: schema-precheck / human-review",
         "input_hint": "Paste the chunks from Prompt 2 and event/indicator records from Prompt 3. The final output is human_review_payload_records, including extracted_text for manual verification.",
-        "prompt": """You are a validation assistant for a competitive intelligence extraction pipeline.
+        "prompt": """You are a validation assistant preparing the final Human Review payload for a competitive intelligence extraction pipeline.
 
-This prompt compresses the following Human Review & Validation jobs for demo purposes:
+This prompt corresponds to the Human Review & Validation phase:
 - schema-precheck
-- human-review payload preparation
+- human-review
 
 Task:
-Verify whether the extracted event and indicator records are supported by the strategic evidence chunks, whether they follow the required schema and taxonomy, and then create the final Human Review payload records.
+Verify whether the extracted event and indicator records are supported by the strategic evidence chunks, whether they follow the required schema and taxonomy, and then create the final human_review_payload_records.
 
-The Human Review payload is the final presentation output of this prompt chain. It should be understandable as business data: one row per reviewable event, with company, business unit, event type, location/site, product category, target year, status, extracted_text evidence and review comment.
+The final output should be understandable as business data. It should look like the record that will be passed to Human Review: one reviewable event per row, including company, business unit, event type, location/site, product category, target year, status, extracted_text evidence and review_comment.
 
 Allowed categories:
 - finance
@@ -602,7 +613,7 @@ Allowed event types:
 - risk_signal
 - other
 
-Validation rules:
+Validation instructions:
 1. Check whether each event field is supported by the linked chunk.
 2. Check whether extracted_text is present and contains the original source passage needed for human verification.
 3. Check whether each numeric value is explicitly present in the source text.
@@ -612,22 +623,46 @@ Validation rules:
 7. Do not create missing-data or placeholder review records.
 8. Create final human_review_payload_records only for meaningful, source-supported events.
 9. Preserve original source text and clearly separate source-supported facts from business interpretation.
-10. For a bioethanol closure record, the Human Review payload should include company_name, business_unit, event_type, country, city_or_region, site_name, product_category, target_year, status, extracted_text and review_comment when supported.
-11. Return JSON only.
+10. If a location value is useful but not fully supported by extracted_text, keep the value as "needs_review" or state the uncertainty in review_comment.
+11. For a bioethanol closure record, the Human Review payload should include company_name, business_unit, event_type, country, city_or_region, site_name, product_category, target_year, status, extracted_text and review_comment when supported.
+12. Return JSON only.
 
 Output schema:
 {
   "human_review_and_validation": {
     "schema_precheck": "...",
     "human_review": "...",
-    "validation_decision": "..."
+    "validation_decision": "pending_human_review"
   },
-  "validation_summary": {"records_checked": 0, "records_supported": 0, "records_requiring_revision": 0, "overall_status": "passed | passed_with_interpretation_notes | failed"},
+  "validation_summary": {
+    "records_checked": 0,
+    "records_supported": 0,
+    "records_requiring_revision": 0,
+    "overall_status": "passed | passed_with_interpretation_notes | failed"
+  },
   "event_validation": [
-    {"event_id": "...", "schema_status": "passed | failed", "evidence_status": "supported | partially_supported | unsupported", "taxonomy_status": "valid | invalid", "numeric_values_status": "passed | failed | not_applicable", "supported_fields": ["..."], "unsupported_fields": ["..."], "potential_overinterpretations": ["..."], "recommended_human_action": "confirm | edit | reject", "validation_comment": "..."}
+    {
+      "event_id": "...",
+      "schema_status": "passed | failed",
+      "evidence_status": "supported | partially_supported | unsupported",
+      "taxonomy_status": "valid | invalid",
+      "numeric_values_status": "passed | failed | not_applicable",
+      "supported_fields": ["..."],
+      "unsupported_fields": ["..."],
+      "potential_overinterpretations": ["..."],
+      "recommended_human_action": "confirm | edit | reject",
+      "validation_comment": "..."
+    }
   ],
   "indicator_validation": [
-    {"indicator_id": "...", "schema_status": "passed | failed", "evidence_status": "supported | unsupported", "numeric_value_status": "passed | failed", "recommended_human_action": "confirm | edit | reject", "validation_comment": "..."}
+    {
+      "indicator_id": "...",
+      "schema_status": "passed | failed",
+      "evidence_status": "supported | unsupported",
+      "numeric_value_status": "passed | failed",
+      "recommended_human_action": "confirm | edit | reject",
+      "validation_comment": "..."
+    }
   ],
   "human_review_payload_records": [
     {
@@ -655,7 +690,7 @@ Output schema:
       "extracted_text": "Exact original source passage used by the reviewer to verify the event.",
       "source_text": "Shorter exact evidence sentence if different from extracted_text.",
       "validation_status": "pending_human_review",
-      "review_question": "...",
+      "review_question": "Does the extracted text support this event and the extracted fields?",
       "recommended_human_action": "confirm | edit | reject",
       "review_comment": "...",
       "requires_human_review": true
@@ -664,10 +699,10 @@ Output schema:
 }
 
 STRATEGIC_EVIDENCE_CHUNKS:
-[PASTE OUTPUT FROM PROMPT 2 HERE]
+Paste the full JSON output from Prompt 2 here.
 
 EVENT_AND_INDICATOR_RECORDS:
-[PASTE OUTPUT FROM PROMPT 3 HERE]""",
+Paste the full JSON output from Prompt 3 here.""",
         "output": DESIRED_FINAL_OUTPUT,
     },
 ]
