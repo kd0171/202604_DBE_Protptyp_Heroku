@@ -19,7 +19,7 @@ SAMPLE_PDF_CANDIDATES = [
 ]
 SAMPLE_PDF_PATH = next((path for path in SAMPLE_PDF_CANDIDATES if path.exists()), SAMPLE_PDF_CANDIDATES[0])
 
-FORMAT_GUIDANCE = """These prompts are intentionally general and do not contain ABF Annual Report source excerpts. The demo configuration is already filled for Nordzucker as focal company and ABF Sugar as peer scope, so the user only needs to paste relevant page-labelled source text from the sample PDF into ChatGPT. The four prompts compress the full Data Engineering pipeline into a short manual prompt-chain demo: Source Intake + Text Preparation → RAG-oriented evidence chunks → IE event extraction and evidence linking → schema pre-check and Human Review payload. The Desired output column is an illustrative output-format example, not preloaded source input."""
+FORMAT_GUIDANCE = """These prompts are intentionally general and do not contain ABF Annual Report source excerpts. They demonstrate how the Data Engineering pipeline can be compressed into a short manual prompt chain. The key correction is that Prompt 1 now carries forward selected verbatim source blocks. Therefore Prompt 2 can use the full output of Prompt 1 as its input; the user does not need to paste the PDF excerpt again if Prompt 1 was executed correctly. The Desired output column is an illustrative output-format example, not preloaded source input."""
 
 DESIRED_SCOPE_OUTPUT = """{
   "document_metadata": {
@@ -33,41 +33,43 @@ DESIRED_SCOPE_OUTPUT = """{
     "confidence": 0.98
   },
   "source_intake": {
-    "upload_pdf": "registered",
-    "register_source": "source registry entry prepared",
+    "upload_pdf": "conceptually registered in the manual demo",
+    "register_source": "source registry entry prepared from the pasted page-labelled excerpt",
     "extract_metadata": "company, document type, year, segment scope and page references identified"
   },
   "text_preparation": {
-    "parse_pdf": "page-level text blocks with page numbers",
-    "extract_clean_text": "headers, page numbers and relevant paragraphs preserved for citation",
+    "parse_pdf": "page-labelled text blocks are treated as extracted PDF text",
+    "extract_clean_text": "original wording is preserved for evidence and Human Review",
     "clean_text_requirements": ["preserve original wording", "preserve source_page", "do not rewrite evidence text"]
   },
-  "relevant_sections": [
+  "prepared_source_blocks": [
     {
-      "section_id": "sugar_operating_review",
-      "section_title": "Operating review - Sugar",
-      "source_page_or_page_range": "example: 34-39",
-      "scope": "target business unit",
-      "relevant_dashboard_dimensions": ["finance", "risk", "operations", "investment", "sustainability", "regulation"],
-      "reason_for_relevance": "Contains segment performance, plant/network decisions, bioethanol closure, capacity investment and decarbonisation evidence.",
-      "information_types_expected": ["segment revenue", "operating profit/loss", "plant closure", "regulatory exposure", "capacity expansion", "decarbonisation"]
+      "block_id": "src_abf_2025_001",
+      "source_page": "example: 35",
+      "source_section": "example: Operating review - Sugar",
+      "scope": "ABF Sugar-related operation",
+      "original_text": "Exact source passage copied verbatim from the user-pasted excerpt. This is carried forward to Prompt 2.",
+      "why_selected": "Contains a concrete business development and enough evidence for later extraction.",
+      "candidate_information_types": ["closure", "regulatory exposure", "financial impact", "site or product information"],
+      "possible_dashboard_dimensions": ["regulation", "risk", "operations", "finance"]
     }
   ],
-  "extraction_targets": [
+  "extraction_plan": [
     {
-      "target_name": "bioethanol plant closure",
+      "target_name": "source-supported business event",
       "expected_fields": ["company_name", "business_unit", "event_type", "country", "city_or_region", "site_name", "product_category", "target_year", "status", "extracted_text"]
     }
   ],
   "scope_warnings": [
     "Do not use group-level figures as segment-level figures unless the source explicitly reports segment-level data.",
-    "Closed or disposed operations may still be relevant if they are explicitly linked to the target business unit."
-  ]
+    "If a location or business unit is not explicit in the source block, mark it as needs_review instead of inventing it."
+  ],
+  "requires_source_text": false
 }"""
 
 DESIRED_CHUNKS_OUTPUT = """{
   "rag_preparation": {
-    "chunk_document": "strategic evidence chunks generated from cleaned source text",
+    "chunk_document": "strategic evidence chunks generated from prepared_source_blocks",
     "create_embeddings": "embedding-ready text and metadata fields prepared conceptually",
     "store_vector_db": "metadata fields defined for retrieval, not executed in this manual demo",
     "prepare_retrieval": "chunks can be retrieved by company, category, event_type, source_page and topic"
@@ -82,13 +84,13 @@ DESIRED_CHUNKS_OUTPUT = """{
       "category": "regulation",
       "secondary_categories": ["risk", "operations"],
       "topic": "Bioethanol plant closure",
-      "topic_source_text": "Exact original sentence(s) stating that the bioethanol plant was decided for closure.",
-      "strategic_signal": "A sugar-industry peer can face strategic risk when adjacent bioethanol assets depend on regulatory or financial support conditions.",
-      "strategic_signal_source_text": "Exact original sentence(s) stating the regulatory or financial reason for the closure.",
-      "category_source_text": "Exact original sentence(s) that justify regulation/risk classification.",
-      "extracted_text": "Exact original passage used for Human Review, copied verbatim from the source document.",
+      "topic_source_text": "Exact original wording that states the closure or stopped production.",
+      "strategic_signal": "A sugar-industry peer may face strategic risk when adjacent bioethanol assets depend on regulatory or financial support conditions.",
+      "strategic_signal_source_text": "Exact original wording that supports the regulatory or financial support interpretation.",
+      "category_source_text": "Exact original wording that justifies regulation/risk classification.",
+      "extracted_text": "Longer exact original passage used for Human Review.",
       "country": "United Kingdom",
-      "city_or_region": "Hull / Humberside",
+      "city_or_region": "Humberside / needs_review if only region is stated",
       "site_name": "Vivergo bioethanol plant",
       "product_category": "bioethanol",
       "target_year": "2025",
@@ -97,28 +99,28 @@ DESIRED_CHUNKS_OUTPUT = """{
       "document_type": "annual_report",
       "reporting_year": "2025",
       "fiscal_period_for_dashboard": "2024/25",
-      "source_page": "example: 35",
-      "source_section": "Operating review - Sugar",
-      "content": "Source-grounded summary of the closure, regulatory context and competitive-intelligence relevance.",
+      "source_page": "example: 35 or 52",
+      "source_section": "source section from Prompt 1",
+      "content": "Source-grounded summary plus clearly labelled strategic interpretation.",
       "numeric_values": [
-        {"metric": "vivergo_sales", "value": 134, "unit": "GBP million", "period": "2025", "source_text": "Exact original source text for this number."},
-        {"metric": "vivergo_adjusted_operating_loss", "value": -36, "unit": "GBP million", "period": "2025", "source_text": "Exact original source text for this number."}
+        {"metric": "vivergo_sales", "value": 134, "unit": "GBP million", "period": "2025", "source_text": "Exact original source text supporting this number."}
       ],
       "retrieval_metadata": {
-        "embedding_text": "company + topic + strategic_signal + extracted_text",
+        "embedding_text": "ABF Sugar Vivergo bioethanol closure regulation risk operations + extracted_text",
         "retrieval_keys": ["ABF Sugar", "Vivergo", "bioethanol", "closure", "regulation", "United Kingdom"]
       },
       "dashboard_relevance": ["regulation", "risk", "operations"],
       "confidence": 0.96,
-      "limitations": "Keep strategic interpretation separate from directly stated source facts. Location fields should remain unknown unless supported by the pasted source text."
+      "limitations": "Keep strategic interpretation separate from directly stated source facts. Location fields should remain needs_review unless directly supported."
     }
-  ]
+  ],
+  "missing_input": null
 }"""
 
 DESIRED_EVENTS_OUTPUT = """{
   "ie_branch": {
-    "select_passages": "the Vivergo-related strategic evidence chunk is selected as relevant",
-    "extract_events_json": "a structured closure event and optional numeric indicators are created",
+    "select_passages": "selected the most relevant strategic evidence chunk",
+    "extract_events_json": "structured closure event and optional numeric indicators created",
     "link_evidence": "each event field is linked back to extracted_text and source_page"
   },
   "event_records": [
@@ -131,61 +133,45 @@ DESIRED_EVENTS_OUTPUT = """{
       "secondary_categories": ["risk", "operations"],
       "event_type": "bioethanol_plant_closure",
       "country": "United Kingdom",
-      "city_or_region": "Hull / Humberside",
+      "city_or_region": "Humberside / needs_review",
       "site_name": "Vivergo bioethanol plant",
       "product_category": "bioethanol",
       "target_year": "2025",
       "status": "closure decided",
       "event_title": "Vivergo bioethanol plant closure decided in 2025",
-      "event_summary": "The ABF Sugar-related Vivergo bioethanol plant was decided for closure after required regulatory and financial conditions were not met.",
+      "event_summary": "The ABF Sugar-related Vivergo bioethanol plant was decided for closure after the required regulatory or financial conditions were not met.",
       "business_interpretation": "For Nordzucker, this is a regulatory exposure signal for bioethanol and co-product strategies linked to sugar-industry assets.",
       "time_horizon": "short-term",
       "fiscal_period_for_dashboard": "2024/25",
       "source_document": "ABF Annual Report 2025",
-      "source_page": "example: 35",
-      "source_section": "Operating review - Sugar",
-      "extracted_text": "Exact original source passage used for Human Review.",
-      "source_text": "Same as extracted_text or a shorter exact evidence sentence.",
+      "source_page": "source page from linked chunk",
+      "source_section": "source section from linked chunk",
+      "extracted_text": "Exact original passage copied from the linked chunk.",
+      "source_text": "Shorter exact evidence sentence if useful.",
       "linked_chunk_ids": ["abf_2025_regulation_vivergo_001"],
       "field_evidence_map": {
-        "event_type": "exact source sentence supporting plant closure",
+        "event_type": "exact source wording supporting plant closure",
         "product_category": "exact source wording showing bioethanol",
         "status": "exact source wording showing closure decision",
-        "country_or_region": "exact source wording supporting location, if available"
+        "country_or_region": "exact source wording supporting location, or needs_review if partial"
       },
       "review_comment": "Check whether the source supports the closure decision, product category, location wording and regulation-linked classification. Keep Nordzucker implication as interpretation.",
       "extraction_confidence": 0.96,
       "requires_human_review": true
     }
   ],
-  "indicator_records": [
-    {
-      "indicator_id": "ABF2025_IND_VIVERGO_SALES_001",
-      "company_name": "ABF Sugar",
-      "business_unit": "Vivergo",
-      "metric": "vivergo_sales",
-      "value": 134,
-      "unit": "GBP million",
-      "period": "2025",
-      "category": "finance",
-      "source_document": "ABF Annual Report 2025",
-      "source_page": "example: 35",
-      "source_text": "Exact original source text for the sales figure.",
-      "linked_chunk_id": "abf_2025_regulation_vivergo_001",
-      "requires_human_review": true
-    }
-  ]
+  "indicator_records": []
 }"""
 
 DESIRED_FINAL_OUTPUT = """{
   "human_review_and_validation": {
     "schema_precheck": "category, event_type, required fields and numeric formats checked",
     "human_review": "reviewer receives structured event plus extracted_text evidence",
-    "validation_decision": "record remains pending until the analyst confirms, edits or rejects it"
+    "validation_decision": "pending_human_review"
   },
   "validation_summary": {
-    "records_checked": 2,
-    "records_supported": 2,
+    "records_checked": 1,
+    "records_supported": 1,
     "records_requiring_revision": 0,
     "overall_status": "passed_with_interpretation_notes"
   },
@@ -195,24 +181,15 @@ DESIRED_FINAL_OUTPUT = """{
       "schema_status": "passed",
       "evidence_status": "supported",
       "taxonomy_status": "valid",
-      "numeric_values_status": "passed",
+      "numeric_values_status": "not_applicable",
       "supported_fields": ["company_name", "business_unit", "event_type", "country", "site_name", "product_category", "target_year", "status", "source_page", "extracted_text"],
       "unsupported_fields": [],
-      "potential_overinterpretations": ["Nordzucker implication is an analyst interpretation and must stay in business_interpretation or review_comment."],
+      "potential_overinterpretations": ["Nordzucker implication is analyst interpretation and must stay in business_interpretation or review_comment."],
       "recommended_human_action": "confirm",
       "validation_comment": "The closure event is source-supported. Human review should check exact location wording and regulatory interpretation."
     }
   ],
-  "indicator_validation": [
-    {
-      "indicator_id": "ABF2025_IND_VIVERGO_SALES_001",
-      "schema_status": "passed",
-      "evidence_status": "supported",
-      "numeric_value_status": "passed",
-      "recommended_human_action": "confirm",
-      "validation_comment": "The numeric value is explicitly present in the linked source text."
-    }
-  ],
+  "indicator_validation": [],
   "human_review_payload_records": [
     {
       "review_record_id": "HR_ABF2025_VIVERGO_001",
@@ -224,23 +201,24 @@ DESIRED_FINAL_OUTPUT = """{
       "secondary_categories": ["risk", "operations"],
       "event_type": "bioethanol_plant_closure",
       "country": "United Kingdom",
-      "city_or_region": "Hull / Humberside",
+      "city_or_region": "Humberside / needs_review",
       "site_name": "Vivergo bioethanol plant",
       "product_category": "bioethanol",
       "target_year": "2025",
       "status": "closure decided",
       "event_title": "Vivergo bioethanol plant closure decided in 2025",
-      "event_summary": "The ABF Sugar-related Vivergo bioethanol plant was decided for closure after required regulatory and financial conditions were not met.",
+      "event_summary": "The ABF Sugar-related Vivergo bioethanol plant was decided for closure after the required regulatory or financial conditions were not met.",
       "business_interpretation": "For Nordzucker, this is a regulatory exposure signal for bioethanol and co-product strategies linked to sugar-industry assets.",
       "fiscal_period_for_dashboard": "2024/25",
       "source_document": "ABF Annual Report 2025",
-      "source_page": "example: 35",
-      "extracted_text": "Exact original source passage used by the reviewer to verify the event.",
+      "source_page": "source page from event record",
+      "source_section": "source section from event record",
+      "extracted_text": "Exact original passage used by the reviewer to verify the event.",
       "source_text": "Shorter exact evidence sentence if different from extracted_text.",
       "validation_status": "pending_human_review",
       "review_question": "Does the extracted text support the closure decision, regulation-linked classification, location, product category and target year?",
       "recommended_human_action": "confirm",
-      "review_comment": "Confirm whether the location should be stored as Hull, Humberside, or both depending on exact source wording. Keep the Nordzucker implication as interpretation, not as a source fact.",
+      "review_comment": "Confirm whether the location should be stored as Humberside, Hull, or needs_review depending on exact source wording. Keep Nordzucker implication as interpretation, not as a source fact.",
       "requires_human_review": true
     }
   ]
@@ -249,17 +227,17 @@ DESIRED_FINAL_OUTPUT = """{
 PROMPT_CHAINS = [
     {
         "step": "1",
-        "title": "Source intake, metadata and text preparation",
+        "title": "Source intake, metadata and reusable source blocks",
         "subtitle": "Compresses upload-pdf, register-source, extract-metadata, parse-pdf and extract-clean-text into one demo prompt.",
         "pipeline_mapping": "Source Intake: upload-pdf / register-source / extract-metadata; Text Preparation: parse-pdf / extract-clean-text",
-        "input_hint": "Paste a short page-labelled excerpt from the sample PDF. Choose text that contains concrete business facts, but do not pre-classify the event for the model.",
+        "input_hint": "Paste a concise page-labelled excerpt from the sample PDF. Prompt 1 must preserve selected original source blocks so that Prompt 2 can use its output directly.",
         "prompt": """You are preparing an LLM-assisted competitive intelligence extraction demo for Nordzucker AG.
 
 This prompt corresponds to the early Data Engineering pipeline stages:
 - Source Intake: upload-pdf, register-source, extract-metadata
 - Text Preparation: parse-pdf, extract-clean-text
 
-The actual PDF upload and PDF parsing are not executed in this manual Prompt Test page. Instead, assume that a user has copied page-labelled text from the official report into SOURCE_TEXT below.
+The actual PDF upload and PDF parsing are not executed in this manual Prompt Test page. Instead, the pasted page-labelled text is treated as the extracted PDF text.
 
 Default demo configuration:
 - Focal company: Nordzucker AG
@@ -270,17 +248,18 @@ Default demo configuration:
 - Dashboard dimensions: finance, risk, sustainability, operations, products, regulation, investment, market_context
 
 Task:
-Create a source registry, identify the relevant business scope, and prepare a page-referenced extraction plan. This is not the final event extraction step. It decides which source sections and text blocks should be used by the next prompt.
+Create a source registry, identify the relevant business scope, and prepare reusable source blocks for the next prompt. This step must not only identify sections; it must also carry forward exact original source text.
 
 Instructions:
-1. Use only SOURCE_TEXT and the default demo configuration above.
-2. Preserve page references and original wording requirements for later Human Review.
-3. Prefer sections directly related to ABF Sugar or ABF Sugar-related operations.
-4. Do not use ABF Group-level figures as ABF Sugar figures unless the text explicitly reports Sugar segment data.
-5. If the text discusses Vivergo, treat it as ABF Sugar-related only when the text explicitly links it to Sugar, ABF Sugar, disposed/closed Sugar operations, British Sugar, or the Sugar division.
-6. Do not create event records in this step.
-7. Do not create missing-data events. If SOURCE_TEXT is empty, return a short JSON object with "requires_source_text": true and explain that page-labelled source text must be pasted before extraction.
-8. Return JSON only.
+1. Use only SOURCE_TEXT_TO_ANALYZE and the default demo configuration above.
+2. Preserve exact original wording in prepared_source_blocks[].original_text.
+3. Each prepared_source_block should be short enough to review but long enough to support extraction: normally one paragraph, one table row, or one coherent page-labelled passage.
+4. Prefer source blocks directly related to ABF Sugar or ABF Sugar-related operations, but do not pre-label the final event type.
+5. Do not use ABF Group-level figures as ABF Sugar figures unless the text explicitly reports Sugar segment data.
+6. If the text discusses Vivergo, treat it as ABF Sugar-related only when the text explicitly links it to Sugar, ABF Sugar, disposed/closed Sugar operations, British Sugar, or the Sugar division.
+7. Do not create event records in this step.
+8. Do not create missing-data events. If no real source text is pasted, return {"requires_source_text": true, "prepared_source_blocks": []}.
+9. Return JSON only.
 
 Output schema:
 {
@@ -304,28 +283,30 @@ Output schema:
     "extract_clean_text": "...",
     "clean_text_requirements": ["preserve original wording", "preserve source_page", "do not rewrite evidence text"]
   },
-  "relevant_sections": [
+  "prepared_source_blocks": [
     {
-      "section_id": "...",
-      "section_title": "...",
-      "source_page_or_page_range": "...",
+      "block_id": "...",
+      "source_page": "...",
+      "source_section": "...",
       "scope": "ABF Sugar | ABF Sugar-related operation | ABF Group with segment data | unclear",
-      "relevant_dashboard_dimensions": ["finance", "risk"],
-      "reason_for_relevance": "...",
-      "information_types_expected": ["event", "indicator", "source evidence"]
+      "original_text": "Exact original passage copied verbatim from SOURCE_TEXT_TO_ANALYZE.",
+      "why_selected": "...",
+      "candidate_information_types": ["event", "indicator", "source evidence"],
+      "possible_dashboard_dimensions": ["finance", "risk"]
     }
   ],
-  "extraction_targets": [
+  "extraction_plan": [
     {
       "target_name": "...",
       "expected_fields": ["company_name", "business_unit", "event_type", "country", "city_or_region", "site_name", "product_category", "target_year", "status", "extracted_text"]
     }
   ],
-  "scope_warnings": ["..."]
+  "scope_warnings": ["..."],
+  "requires_source_text": false
 }
 
-SOURCE_TEXT:
-Paste page-labelled source text here. For a demo, choose a concise excerpt that contains concrete facts about a peer business unit, such as financial performance, operational changes, regulatory exposure, investment activity, sustainability projects or product/co-product developments. Do not pre-label the event in the pasted text; let the prompt chain identify the category and event type from the evidence.""",
+SOURCE_TEXT_TO_ANALYZE:
+Paste the selected page-labelled source text here. Do not paste only the output of another prompt here. This field should contain actual report text copied from the PDF.""",
         "output": DESIRED_SCOPE_OUTPUT,
     },
     {
@@ -333,7 +314,7 @@ Paste page-labelled source text here. For a demo, choose a concise excerpt that 
         "title": "Strategic evidence chunks and retrieval preparation",
         "subtitle": "Compresses chunk-document, create-embeddings, store-vector-db and prepare-retrieval into one demo prompt.",
         "pipeline_mapping": "RAG branch: chunk-document / create-embeddings / store-vector-db / prepare-retrieval",
-        "input_hint": "Paste the cleaned, page-labelled source text selected in Prompt 1. The prompt creates source-grounded chunks and metadata that could later be embedded or retrieved.",
+        "input_hint": "Paste the full JSON output from Prompt 1. Prompt 2 will use prepared_source_blocks[].original_text as the evidence source.",
         "prompt": """You are preparing retrieval-oriented strategic evidence chunks for an LLM-assisted competitive intelligence pipeline.
 
 This prompt corresponds to the RAG branch of the Data Engineering pipeline:
@@ -362,9 +343,15 @@ Allowed dashboard categories:
 - market_context
 
 Task:
-Convert the pasted source text into strategic evidence chunks. Each chunk must be a self-contained, source-grounded semantic unit that can later be used for retrieval, evidence display, event extraction and Human Review.
+Convert the source blocks from Prompt 1 into strategic evidence chunks. Each chunk must be a self-contained, source-grounded semantic unit that can later be used for retrieval, evidence display, event extraction and Human Review.
 
-Candidate information types to capture when they are present in SOURCE_TEXT:
+Important input rule:
+- The preferred input is the full JSON output from Prompt 1.
+- Use PREPARED_SOURCE_FROM_PROMPT_1.prepared_source_blocks[].original_text as the source text.
+- If raw page-labelled text is pasted instead of Prompt 1 output, use that raw text.
+- If neither prepared_source_blocks nor raw source text is present, return an empty chunks list and explain that the previous step did not carry forward original source text. Do not create a placeholder event.
+
+Candidate information types to capture when present:
 - segment financial performance, margins or profit/loss changes
 - plant, site, footprint or capacity changes
 - closures, restructuring or discontinued activities
@@ -373,14 +360,14 @@ Candidate information types to capture when they are present in SOURCE_TEXT:
 - sustainability projects with measurable operational impact
 
 Instructions:
-1. Use only SOURCE_TEXT and, optionally, OUTPUT_FROM_PROMPT_1.
+1. Use only prepared_source_blocks[].original_text or raw pasted source text.
 2. Do not invent facts, values, pages, sites, cities, countries or causes.
-3. Do not create placeholder records. If the source is insufficient, return an empty chunks list and a concise "missing_input" explanation.
-4. Each chunk must include extracted_text: the exact original source passage copied verbatim from the pasted source text.
-5. Also include topic_source_text, strategic_signal_source_text and category_source_text as exact original evidence snippets.
-6. Include numeric values only if they are explicitly stated in the pasted source text.
-7. Separate source-supported facts from strategic interpretation.
-8. If the source describes a bioethanol plant closure, extract these fields when supported: company_name, business_unit, country, city_or_region, site_name, product_category, target_year and status. If the location is partly inferred from a known site name but not stated in the pasted text, mark the uncertain part as "needs_review" rather than inventing it.
+3. Each chunk must include extracted_text: the exact original passage copied verbatim from the source block.
+4. Also include topic_source_text, strategic_signal_source_text and category_source_text as exact evidence snippets.
+5. Include numeric values only if explicitly stated in the source text.
+6. Separate source-supported facts from strategic interpretation.
+7. If the source describes a bioethanol plant closure, extract these fields when supported: company_name, business_unit, country, city_or_region, site_name, product_category, target_year and status.
+8. If the location is partly useful but not directly stated, mark it as "needs_review" rather than inventing it.
 9. Return JSON only.
 
 Output schema:
@@ -434,11 +421,11 @@ Output schema:
   "missing_input": null
 }
 
-SOURCE_TEXT:
-Paste the selected page-labelled source text here.
+PREPARED_SOURCE_FROM_PROMPT_1:
+Paste the full JSON output from Prompt 1 here. It should contain prepared_source_blocks with original_text.
 
-OUTPUT_FROM_PROMPT_1_OPTIONAL:
-Paste the output from Prompt 1 here if available. If not available, proceed using SOURCE_TEXT only.""",
+OPTIONAL_RAW_SOURCE_TEXT:
+If you did not run Prompt 1, paste page-labelled report text here.""",
         "output": DESIRED_CHUNKS_OUTPUT,
     },
     {
@@ -446,7 +433,7 @@ Paste the output from Prompt 1 here if available. If not available, proceed usin
         "title": "IE event extraction and evidence linking",
         "subtitle": "Compresses select-passages, extract-events-json and link-evidence into one demo prompt.",
         "pipeline_mapping": "IE branch: select-passages / extract-events-json / link-evidence",
-        "input_hint": "Paste the JSON chunks produced by Prompt 2. The output should be meaningful event and indicator records with exact extracted_text evidence.",
+        "input_hint": "Paste the full JSON chunks produced by Prompt 2. The output should be meaningful event and indicator records with exact extracted_text evidence.",
         "prompt": """You are converting strategic evidence chunks into dashboard-ready event and indicator records for a Nordzucker competitive intelligence dashboard.
 
 This prompt corresponds to the IE branch of the Data Engineering pipeline:
@@ -501,9 +488,10 @@ Instructions:
 6. Every event record must include extracted_text.
 7. Every record must have "requires_human_review": true.
 8. Keep business_interpretation separate from source-supported facts.
-9. If a chunk describes a bioethanol plant closure, use event_type = "bioethanol_plant_closure" and preserve company_name, business_unit, country, city_or_region, site_name, product_category, target_year and status. If city_or_region is not directly supported, mark it as "needs_review" and explain in review_comment.
-10. The output should be close to what the Human Review screen needs, but still unverified.
-11. Return JSON only.
+9. If a chunk describes a bioethanol plant closure, use event_type = "bioethanol_plant_closure" and preserve company_name, business_unit, country, city_or_region, site_name, product_category, target_year and status.
+10. If city_or_region is useful but not directly supported, mark it as "needs_review" and explain this in review_comment.
+11. The output should be close to what the Human Review screen needs, but still unverified.
+12. Return JSON only.
 
 Output schema:
 {
