@@ -698,77 +698,55 @@ Paste the full JSON output from Prompt 3 here.""",
 
 TUTORIAL_STEPS = [
     {
-        "title": "1. Start the Prompt Test tutorial",
+        "title": "1. Download the sample PDF",
+        "media_src": "/assets/tutorial/prompt_test/PromptTest_1_SamplePDFDownload.gif",
+        "media_alt": "Tutorial GIF showing the Sample PDF button being clicked on the Prompt Test page.",
         "text": """
-#### Goal
+#### Simplified prompt-chain demo
 
-This page shows the prompt chain behind the Data Engineering workflow without requiring a PDF upload.
+This page demonstrates a **simplified prompt chain** for the Data Engineering pipeline. It does not execute an LLM backend inside the app. Instead, it shows how the pipeline idea can be tested manually with an external LLM interface.
 
-#### What you can test
+#### Step 1
 
-Use the **Sample PDF** button to download ABF Annual Report 2025, copy relevant excerpts from the PDF and run the four prompts in ChatGPT or another LLM interface.
-
-#### How to continue
-
-Click **Next** to learn the workflow, or **Skip tutorial** if you already know how to use the page.
+Download the sample PDF and choose a short page-labelled excerpt that contains concrete business facts. For the first prompt, the PDF or copied PDF excerpt is needed because Prompt 1 prepares the source blocks used by the following prompts.
 """,
-        "hint": "This page is designed for a short live demo or screen recording of the LLM prompt chain.",
+        "hint": "The GIF file should be stored at assets/tutorial/prompt_test/PromptTest_1_SamplePDFDownload.gif.",
     },
     {
-        "title": "2. Download the sample PDF",
-        "media_src": "/assets/tutorial/01_download_sample_pdf.gif",
-        "media_alt": "Tutorial GIF showing the Sample PDF button being clicked.",
+        "title": "2. Copy a prompt and get JSON output",
+        "media_src": "/assets/tutorial/prompt_test/PromptTest_2_CopyPromptAddPDFGetJSON.gif",
+        "media_alt": "Tutorial GIF showing the first prompt accordion opened, the prompt copied, the PDF added to Gemini, the prompt pasted and JSON output generated.",
         "text": """
-#### Goal
+#### Step 2
 
-Download the same official ABF Annual Report 2025 sample PDF used by the Data Engineering View.
+Open the first accordion item, copy the prompt and run it in Gemini, ChatGPT or another LLM interface together with the sample PDF or selected page-labelled PDF text. The expected result is JSON.
 
-#### What to do
+#### Continue the chain
 
-Open the PDF and copy a concise page-labelled excerpt that contains concrete business facts. The prompt chain should infer the relevant category, event type and review fields from the evidence rather than from a pre-labelled instruction.
+Prompts **2–4 are run in the same way**: copy the next prompt, paste it into the LLM, and provide the previous JSON output as input.
 
-#### Why this matters
-
-Using the same PDF keeps the prompt test, Human Verification records and dashboard examples internally consistent.
+Only **Prompt 1** needs the PDF or PDF excerpt. For **Prompt 2 onward**, copy the JSON output from the previous prompt and use it as the input for the next prompt.
 """,
-        "hint": "The prompt test page does not upload or process the PDF. You manually copy excerpts into the LLM for demonstration purposes.",
+        "hint": "This demonstrates prompt chaining: Prompt 1 output → Prompt 2 input → Prompt 3 input → Prompt 4 input.",
     },
     {
-        "title": "3. Run the prompts in order",
+        "title": "3. Preview the final JSON as a Human Review table",
+        "media_src": "/assets/tutorial/prompt_test/PromptTest_3_4thPromptGetTable.gif",
+        "media_alt": "Tutorial GIF showing the final output preview accordion opened and Prompt 4 JSON output pasted so that a table preview is rendered.",
         "text": """
-#### Goal
+#### Step 3
 
-Follow the four-step prompt chain from source text to validated records.
+Open the final table-preview accordion and paste the JSON output from Prompt 4. The app then renders the `human_review_payload_records` as a table.
 
-#### Recommended order
+#### Important limitation
 
-1. Identify section and scope.
-2. Generate strategic evidence chunks.
-3. Extract event and indicator records.
-4. Verify evidence, schema and business logic.
+This table preview is only a **JSON visualisation helper**. It is not an LLM function and it does not validate the JSON content by itself.
 
-#### Business meaning
+#### Intended implementation meaning
 
-This shows how the app's pipeline can be implemented as an auditable LLM-assisted workflow instead of a black-box extraction step.
+In a full implementation, this final JSON would be the kind of structured record passed to **Human Review**. The reviewer would compare the extracted fields with the `extracted_text` evidence before the data is confirmed and saved.
 """,
-        "hint": "Each accordion item contains a prompt on the left and the expected JSON-style output on the right.",
-    },
-    {
-        "title": "4. Connect the prompt result to the app",
-        "text": """
-#### Goal
-
-Understand how the prompt outputs map back to the Data Engineering pipeline.
-
-#### Mapping
-
-Strategic evidence chunks correspond to the RAG-oriented preparation branch. Event and indicator records correspond to the IE branch. Verification output explains why Human Review is required before saving data to the structured database.
-
-#### Final message
-
-The database should receive only records that are source-linked, schema-valid and human-verified.
-""",
-        "hint": "This completes the prompt test tutorial.",
+        "hint": "The GIF file should be stored at assets/tutorial/prompt_test/PromptTest_3_4thPromptGetTable.gif.",
     },
 ]
 
@@ -843,6 +821,28 @@ def _json_to_pretty(value):
     if value is None:
         return ""
     return str(value)
+
+
+def _asset_file_exists(asset_src: str) -> bool:
+    if not asset_src.startswith("/assets/"):
+        return False
+    rel = asset_src.replace("/assets/", "assets/", 1)
+    return (APP_ROOT / rel).exists()
+
+
+def _tutorial_media(item):
+    media_src = item.get("media_src")
+    if not media_src:
+        return None, {"display": "none"}
+    if _asset_file_exists(media_src):
+        return html.Img(src=media_src, alt=item.get("media_alt", "Tutorial media"), className="tutorial-media-image"), {}
+    return html.Div(
+        [
+            html.Div("Tutorial GIF placeholder", className="tutorial-media-label"),
+            html.Div(f"Place the GIF file at: {media_src}", className="tutorial-media-subtitle"),
+        ],
+        className="tutorial-missing-media-box",
+    ), {}
 
 
 def _extract_review_records(data):
@@ -1055,11 +1055,7 @@ def render_tutorial(store):
     step = min(max(int(store.get("step", 0)), 0), len(TUTORIAL_STEPS) - 1)
     item = TUTORIAL_STEPS[step]
     is_last = step == len(TUTORIAL_STEPS) - 1
-    media_children = None
-    media_style = {"display": "none"}
-    if item.get("media_src"):
-        media_children = html.Img(src=item["media_src"], alt=item.get("media_alt", "Tutorial media"), className="tutorial-media-image")
-        media_style = {}
+    media_children, media_style = _tutorial_media(item)
     return (
         bool(store.get("open", True)),
         item["title"],

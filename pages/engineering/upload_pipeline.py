@@ -651,7 +651,7 @@ Click **Next** to start the tutorial. Click **Skip tutorial** if you already kno
     {
         "title": "2. Download the sample PDF",
         "media": "GIF: Sample PDF download",
-        "media_src": "/assets/tutorial/01_download_sample_pdf.gif",
+        "media_src": "/assets/tutorial/data_engineering/01_download_sample_pdf.gif",
         "media_alt": "Tutorial GIF showing the Sample PDF button being clicked to download the ABF Annual Report 2025 sample document.",
         "text": """
 #### Goal
@@ -671,7 +671,7 @@ The prototype is intentionally configured around one concrete source document. T
     {
         "title": "3. Upload the sample PDF",
         "media": "GIF: Sample PDF upload",
-        "media_src": "/assets/tutorial/02_upload_sample_pdf.gif",
+        "media_src": "/assets/tutorial/data_engineering/02_upload_sample_pdf.gif",
         "media_alt": "Tutorial GIF showing the downloaded ABF Annual Report 2025 sample PDF being uploaded through the Upload PDF box.",
         "text": """
 #### Goal
@@ -695,7 +695,7 @@ This prototype accepts only the designated sample document **ABF Annual Report 2
     {
         "title": "4. Understand the upload validation rule",
         "media": "GIF: unsupported PDF upload warning",
-        "media_src": "/assets/tutorial/03_upload_validation_note.gif",
+        "media_src": "/assets/tutorial/data_engineering/03_upload_validation_note.gif",
         "media_alt": "Tutorial GIF showing that an unsupported PDF is rejected by the prototype and the pipeline does not start.",
         "text": """
 #### Goal
@@ -719,7 +719,7 @@ This prevents a misleading prototype behavior where arbitrary PDFs would appear 
     {
         "title": "5. Watch the pipeline progress",
         "media": "GIF: pipeline progress",
-        "media_src": "/assets/tutorial/04_pipeline_overview.gif",
+        "media_src": "/assets/tutorial/data_engineering/04_pipeline_overview.gif",
         "media_alt": "Tutorial GIF showing the simulated Data Engineering pipeline progressing from source intake through RAG indexing, information extraction, human validation and structured storage.",
         "text": """
 #### Goal
@@ -739,7 +739,7 @@ The key idea is separation of responsibilities: document preparation and retriev
     {
         "title": "6. Inspect Prompt and Output for a pipeline job",
         "media": "GIF: prompt and output detail",
-        "media_src": "/assets/tutorial/05_pipeline_prompt_output.gif",
+        "media_src": "/assets/tutorial/data_engineering/05_pipeline_prompt_output.gif",
         "media_alt": "Tutorial GIF showing a pipeline job being clicked and the corresponding Prompt and Output areas highlighted with red boxes.",
         "text": """
 #### Goal
@@ -759,7 +759,7 @@ The GIF highlights the **Prompt** and **Output** areas with red boxes. These are
     {
         "title": "7. Use the Human Verification workflow",
         "media": "GIF: human verification workflow",
-        "media_src": "/assets/tutorial/06_human_verification.gif",
+        "media_src": "/assets/tutorial/data_engineering/06_human_verification.gif",
         "media_alt": "Tutorial GIF showing the Human Verification workflow with red boxes around event selection, event review and editing, save, confirm, and confirm while ignoring unreviewed events.",
         "text": """
 #### Goal
@@ -789,7 +789,7 @@ This is the core control point of the prototype. It demonstrates that structured
     {
         "title": "8. Finish the workflow: store verified data in the database",
         "media": "GIF: verified data stored in database",
-        "media_src": "/assets/tutorial/07_verified_data_saved_to_db.gif",
+        "media_src": "/assets/tutorial/data_engineering/07_verified_data_saved_to_db.gif",
         "media_alt": "Tutorial GIF showing the final pipeline step where verified data proceeds to save-relational-db and is stored as structured database output.",
         "text": """
 #### Goal
