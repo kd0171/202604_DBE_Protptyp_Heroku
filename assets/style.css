@@ -1249,3 +1249,115 @@ body {
     font-weight: 700;
     margin-bottom: 0.5rem;
 }
+
+.prompt-test-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.35rem;
+}
+.copy-prompt-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(11, 59, 91, 0.25);
+    border-radius: 8px;
+    padding: 0.25rem 0.5rem;
+    background: #ffffff;
+    color: #0b3b5b;
+    cursor: pointer;
+}
+.copy-prompt-button:hover {
+    background: #eef7fb;
+}
+
+.prompt-test-final-json-input {
+    width: 100%;
+    min-height: 420px;
+    max-height: 620px;
+    overflow: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    border: 1px solid rgba(15, 23, 42, 0.18);
+    border-radius: 10px;
+    padding: 0.75rem;
+    background: #fbfdff;
+}
+
+.prompt-test-final-table th {
+    width: 34%;
+    color: #0b3b5b;
+    background: #f5f9fc;
+    vertical-align: top;
+}
+
+.prompt-test-final-table td {
+    white-space: pre-wrap;
+    vertical-align: top;
+}
+
+.prompt-test-final-table-wide th {
+    width: auto;
+    white-space: nowrap;
+    vertical-align: top;
+    background: #f5f9fc;
+    color: #0b3b5b;
+}
+
+.prompt-test-final-table-wide td {
+    min-width: 120px;
+    max-width: 320px;
+    white-space: normal;
+    vertical-align: top;
+}
+
+.prompt-test-final-table-wide td:nth-child(5),
+.prompt-test-final-table-wide td:nth-child(6),
+.prompt-test-final-table-wide td:nth-child(8) {
+    min-width: 220px;
+    max-width: 420px;
+}
+
+/* Prompt Test final Human Review preview: keep an empty preview visibly open. */
+.prompt-test-final-preview-wrap {
+    min-height: 150px;
+    overflow-x: auto;
+}
+.prompt-test-final-preview-wrap .prompt-test-final-table-wide {
+    min-height: 150px;
+}
+.prompt-test-final-table-wide tbody tr {
+    min-height: 92px;
+}
+.prompt-test-final-table-wide tbody td {
+    min-height: 92px;
+}
+.prompt-test-final-table-wide td:nth-child(7),
+.prompt-test-final-table-wide td:nth-child(8),
+.prompt-test-final-table-wide td:nth-child(12),
+.prompt-test-final-table-wide td:nth-child(14),
+.prompt-test-final-table-wide td:nth-child(15) {
+    min-width: 240px;
+    max-width: 520px;
+}
+.prompt-test-final-table-wide td:nth-child(14) {
+    min-width: 360px;
+    max-width: 720px;
+    white-space: pre-wrap;
+}
+
+/* Tutorial folder placeholders for user-provided GIFs */
+.tutorial-missing-media-box {
+  width: 100%;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px dashed rgba(11, 59, 91, 0.35);
+  padding: 1rem;
+}

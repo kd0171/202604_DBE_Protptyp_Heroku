@@ -151,7 +151,7 @@ def layout():
                     "Dashboards and interactive exploration for market context, regional competitor activity, extracted events, and source-grounded summaries.",
                     className="home-card-text"
                 ),
-                dbc.Button("Open Data Analysis View", href="/analysis/market-overview", color="secondary"),
+                dbc.Button("Open Data Analysis View", href="/analysis/competitive-scorecard", color="secondary"),
             ]), className="home-card"), md=6),
         ], className="chart-row")
     ])
