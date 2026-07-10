@@ -1,4 +1,4 @@
-# Nordzucker Competitor Intelligence Data Product
+# Nordzucker Competitor Intelligence Dashboard
 
 This is a CSV-based Plotly Dash prototype for a Business Informatics lecture project.
 
