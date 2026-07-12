@@ -77,6 +77,7 @@ DESIRED_CHUNKS_OUTPUT = """{
   "chunks": [
     {
       "chunk_id": "abf_2025_regulation_vivergo_001",
+      "company": "ABF Sugar",
       "company_name": "ABF Sugar",
       "business_unit": "Vivergo",
       "parent_company": "Associated British Foods plc",
@@ -97,6 +98,7 @@ DESIRED_CHUNKS_OUTPUT = """{
       "status": "closure decided",
       "time_horizon": "short-term",
       "document_type": "annual_report",
+      "year": 2025,
       "reporting_year": "2025",
       "fiscal_period_for_dashboard": "2024/25",
       "source_page": "example: 35 or 52",
@@ -366,9 +368,11 @@ Instructions:
 4. Also include topic_source_text, strategic_signal_source_text and category_source_text as exact evidence snippets.
 5. Include numeric values only if explicitly stated in the source text.
 6. Separate source-supported facts from strategic interpretation.
-7. If the source describes a bioethanol plant closure, extract these fields when supported: company_name, business_unit, country, city_or_region, site_name, product_category, target_year and status.
-8. If the location is partly useful but not directly stated, mark it as "needs_review" rather than inventing it.
-9. Return JSON only.
+7. Each strategic chunk must include at least these thesis-aligned fields: company or company_name, category, topic, strategic_signal, time_horizon, document_type, year or reporting_year, and content.
+8. Use time_horizon values only from: short-term, mid-term, long-term, unclear.
+9. If the source describes a bioethanol plant closure, extract these fields when supported: company_name, business_unit, country, city_or_region, site_name, product_category, target_year and status.
+10. If the location is partly useful but not directly stated, mark it as "needs_review" rather than inventing it.
+11. Return JSON only.
 
 Output schema:
 {
@@ -381,6 +385,7 @@ Output schema:
   "chunks": [
     {
       "chunk_id": "...",
+      "company": "...",
       "company_name": "...",
       "business_unit": "...",
       "parent_company": "...",
@@ -399,8 +404,9 @@ Output schema:
       "product_category": "...",
       "target_year": "...",
       "status": "...",
-      "time_horizon": "short-term | medium-term | long-term | unclear",
+      "time_horizon": "short-term | mid-term | long-term | unclear",
       "document_type": "annual_report",
+      "year": "...",
       "reporting_year": "...",
       "fiscal_period_for_dashboard": "...",
       "source_page": "...",
