@@ -634,6 +634,10 @@ TUTORIAL_STEPS = [
         "text": """
 #### Welcome to the Data Engineering tutorial
 
+#### Note on tutorial GIFs
+
+Some GIFs in this tutorial may still show an earlier application title from a previous version. The current application title is **Nordzucker Competitive Intelligence Dashboard**.
+
 This guided walkthrough explains how the prototype turns one official sample PDF into structured, human-verified event data for the analysis dashboard.
 
 #### What you will see

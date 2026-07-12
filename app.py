@@ -9,7 +9,7 @@ app = Dash(
     external_stylesheets=[dbc.themes.BOOTSTRAP],
     suppress_callback_exceptions=True
 )
-app.title = "Competitive Intelligence Dashboard"
+app.title = "Nordzucker Competitive Intelligence Dashboard"
 server = app.server
 
 engineering_links = [
@@ -38,7 +38,7 @@ app.layout = html.Div([
     dbc.Navbar(
         dbc.Container([
             html.A([
-                html.Div("Competitive Intelligence Dashboard", className="app-title"),
+                html.Div("Nordzucker Competitive Intelligence Dashboard", className="app-title"),
                 html.Div("LLM-assisted document-to-table pipeline + prompt-chain test + data analysis", className="app-subtitle"),
             ], href="/", className="brand-link"),
             dbc.Nav([

@@ -17,6 +17,10 @@ HOME_TUTORIAL_STEPS = [
         "text": """
 #### Welcome to the prototype
 
+#### Note on tutorial GIFs
+
+Some GIFs in this tutorial may still show an earlier application title from a previous version. The current application title is **Nordzucker Competitive Intelligence Dashboard**.
+
 This application demonstrates a simplified competitive-intelligence dashboard for the sugar industry.
 
 The prototype has three main entry points:
@@ -111,7 +115,7 @@ def layout():
         dbc.Row([
             dbc.Col([
                 html.Div("Business Informatics PoC", className="home-kicker"),
-                html.H1("Competitive Intelligence Dashboard", className="home-title"),
+                html.H1("Nordzucker Competitive Intelligence Dashboard", className="home-title"),
                 html.P(
                     "A two-view PoC that demonstrates how curated public documents can be converted into structured competitor event data and then explored through dashboards and a RAG-like interactive interface.",
                     className="home-lead"

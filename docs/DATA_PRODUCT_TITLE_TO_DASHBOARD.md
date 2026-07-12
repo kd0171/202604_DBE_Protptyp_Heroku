@@ -1,6 +1,6 @@
 # Title update: Data Product → Dashboard
 
-Updated the application-facing title from **Nordzucker Competitor Intelligence Data Product** to **Competitive Intelligence Dashboard**.
+Updated the application-facing title from **Nordzucker Competitive Intelligence Data Product** to **Nordzucker Competitive Intelligence Dashboard**.
 
 Changed locations:
 

@@ -78,6 +78,10 @@ DATA_ANALYSIS_TUTORIAL_STEPS = [
         "text": """
 #### Data Analysis View modes
 
+#### Note on tutorial GIFs
+
+Some GIFs in this tutorial may still show an earlier application title from a previous version. The current application title is **Nordzucker Competitive Intelligence Dashboard**.
+
 The Data Analysis View has two simplified prototype modes:
 
 1. **Dashboard Mode** — shows precomputed competitive-intelligence dashboards based on structured CSV data.
