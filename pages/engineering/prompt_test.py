@@ -704,17 +704,13 @@ TUTORIAL_STEPS = [
         "text": """
 #### Simplified prompt-chain demo
 
-#### Note on tutorial GIFs
-
-Some GIFs in this tutorial may still show an earlier application title from a previous version. The current application title is **Nordzucker Competitive Intelligence Dashboard**.
-
 This page demonstrates a **simplified prompt chain** for the Data Engineering pipeline. It does not execute an LLM backend inside the app. Instead, it shows how the pipeline idea can be tested manually with an external LLM interface.
 
 #### Step 1
 
 Download the sample PDF and choose a short page-labelled excerpt that contains concrete business facts. For the first prompt, the PDF or copied PDF excerpt is needed because Prompt 1 prepares the source blocks used by the following prompts.
 """,
-        "hint": "The GIF file should be stored at assets/tutorial/prompt_test/PromptTest_1_SamplePDFDownload.gif.",
+        "hint": "Note: The title shown inside this tutorial GIF may reflect an earlier version of the prototype.",
     },
     {
         "title": "2. Copy a prompt and get JSON output",
@@ -750,7 +746,7 @@ This table preview is only a **JSON visualisation helper**. It is not an LLM fun
 
 In a full implementation, this final JSON would be the kind of structured record passed to **Human Review**. The reviewer would compare the extracted fields with the `extracted_text` evidence before the data is confirmed and saved.
 """,
-        "hint": "The GIF file should be stored at assets/tutorial/prompt_test/PromptTest_3_4thPromptGetTable.gif.",
+        "hint": "Note: The title shown inside this tutorial GIF may reflect an earlier version of the prototype.",
     },
 ]
 
@@ -839,11 +835,11 @@ def _tutorial_media(item):
     if not media_src:
         return None, {"display": "none"}
     if _asset_file_exists(media_src):
-        return html.Img(src=media_src, alt=item.get("media_alt", "Tutorial media"), className="tutorial-media-image"), {}
+        return html.Div([html.Img(src=media_src, alt=item.get("media_alt", "Tutorial media"), className="tutorial-media-image"), html.Div("Note: The title shown inside this tutorial GIF may reflect an earlier version of the prototype.", className="tutorial-gif-note")], className="tutorial-media-with-note"), {}
     return html.Div(
         [
-            html.Div("Tutorial GIF placeholder", className="tutorial-media-label"),
-            html.Div(f"Place the GIF file at: {media_src}", className="tutorial-media-subtitle"),
+            html.Div("Tutorial GIF", className="tutorial-media-label"),
+            html.Div("The tutorial GIF is not embedded in this ZIP preview. Note: The title shown inside this tutorial GIF may reflect an earlier version of the prototype.", className="tutorial-media-subtitle"),
         ],
         className="tutorial-missing-media-box",
     ), {}

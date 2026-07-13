@@ -634,10 +634,6 @@ TUTORIAL_STEPS = [
         "text": """
 #### Welcome to the Data Engineering tutorial
 
-#### Note on tutorial GIFs
-
-Some GIFs in this tutorial may still show an earlier application title from a previous version. The current application title is **Nordzucker Competitive Intelligence Dashboard**.
-
 This guided walkthrough explains how the prototype turns one official sample PDF into structured, human-verified event data for the analysis dashboard.
 
 #### What you will see
@@ -1524,10 +1520,16 @@ def render_tutorial(store):
     media_children = None
     media_style = {"display": "none"}
     if item.get("media_src"):
-        media_children = html.Img(
-            src=item["media_src"],
-            alt=item.get("media_alt", item.get("media", "Tutorial media")),
-            className="tutorial-media-image",
+        media_children = html.Div(
+            [
+                html.Img(
+                    src=item["media_src"],
+                    alt=item.get("media_alt", item.get("media", "Tutorial media")),
+                    className="tutorial-media-image",
+                ),
+                html.Div("Note: The title shown inside this tutorial GIF may reflect an earlier version of the prototype.", className="tutorial-gif-note"),
+            ],
+            className="tutorial-media-with-note",
         )
         media_style = {}
     elif item.get("media"):

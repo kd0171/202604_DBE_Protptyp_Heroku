@@ -17,10 +17,6 @@ HOME_TUTORIAL_STEPS = [
         "text": """
 #### Welcome to the prototype
 
-#### Note on tutorial GIFs
-
-Some GIFs in this tutorial may still show an earlier application title from a previous version. The current application title is **Nordzucker Competitive Intelligence Dashboard**.
-
 This application demonstrates a simplified competitive-intelligence dashboard for the sugar industry.
 
 The prototype has three main entry points:
@@ -48,7 +44,7 @@ Use the buttons on the Home page to open the three prototype areas in this order
 
 This GIF is sufficient for the Home page because the Home page only explains how to enter the main workflows.
 """,
-        "hint": "The GIF file should be stored at assets/tutorial/home/HomePage.gif.",
+        "hint": "Note: The title shown inside this tutorial GIF may reflect an earlier version of the prototype.",
     },
 ]
 
@@ -65,15 +61,21 @@ def _tutorial_media(item):
     if not media_src:
         return None, {"display": "none"}
     if _asset_file_exists(media_src):
-        return html.Img(
-            src=media_src,
-            alt=item.get("media_alt", "Tutorial media"),
-            className="tutorial-media-image",
+        return html.Div(
+            [
+                html.Img(
+                    src=media_src,
+                    alt=item.get("media_alt", "Tutorial media"),
+                    className="tutorial-media-image",
+                ),
+                html.Div("Note: The title shown inside this tutorial GIF may reflect an earlier version of the prototype.", className="tutorial-gif-note"),
+            ],
+            className="tutorial-media-with-note",
         ), {}
     return html.Div(
         [
-            html.Div("Tutorial GIF placeholder", className="tutorial-media-label"),
-            html.Div(f"Place the GIF file at: {media_src}", className="tutorial-media-subtitle"),
+            html.Div("Tutorial GIF", className="tutorial-media-label"),
+            html.Div("The tutorial GIF is not embedded in this ZIP preview. Note: The title shown inside this tutorial GIF may reflect an earlier version of the prototype.", className="tutorial-media-subtitle"),
         ],
         className="tutorial-missing-media-box",
     ), {}
